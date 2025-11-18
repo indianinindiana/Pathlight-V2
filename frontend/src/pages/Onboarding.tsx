@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useDebt } from '@/context/DebtContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,23 +7,34 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
-import { CreditScoreRange, PayoffGoal, FinancialContext } from '@/types/debt';
-import { ArrowRight, ArrowLeft, DollarSign, Target, TrendingUp, Compass } from 'lucide-react';
+import { CreditScoreRange, PayoffGoal, FinancialContext, AgeRange, EmploymentStatus, PayoffPriority } from '@/types/debt';
+import { ArrowRight, ArrowLeft, DollarSign, Compass } from 'lucide-react';
 
 const Onboarding = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { setFinancialContext, setOnboardingComplete } = useDebt();
   const [step, setStep] = useState(1);
-  const totalSteps = 4;
+  const totalSteps = 5;
+
+  const selectedGoal = (location.state as any)?.selectedGoal as PayoffGoal || 'pay-faster';
+
+  const goalLabels: Record<PayoffGoal, string> = {
+    'pay-faster': 'paying off debt faster',
+    'lower-payment': 'lowering your monthly payments',
+    'reduce-interest': 'reducing your interest',
+    'avoid-default': 'avoiding falling behind'
+  };
 
   const [formData, setFormData] = useState({
-    name: '',
+    ageRange: '' as AgeRange,
+    employmentStatus: '' as EmploymentStatus,
     zipCode: '',
     monthlyIncome: '',
     monthlyExpenses: '',
     liquidSavings: '',
     creditScoreRange: '' as CreditScoreRange,
-    primaryGoal: '' as PayoffGoal,
+    payoffPriority: '' as PayoffPriority,
     timeHorizon: 'flexible' as 'asap' | '1-2-years' | '3-5-years' | 'flexible'
   });
 
@@ -31,15 +42,17 @@ const Onboarding = () => {
     if (step < totalSteps) {
       setStep(step + 1);
     } else {
-      // Complete onboarding
+      // Complete onboarding and go to debt entry
       const context: FinancialContext = {
-        name: formData.name,
-        zipCode: formData.zipCode,
+        ageRange: formData.ageRange,
+        employmentStatus: formData.employmentStatus,
+        zipCode: formData.zipCode || undefined,
         monthlyIncome: parseFloat(formData.monthlyIncome),
         monthlyExpenses: parseFloat(formData.monthlyExpenses),
         liquidSavings: parseFloat(formData.liquidSavings),
         creditScoreRange: formData.creditScoreRange,
-        primaryGoal: formData.primaryGoal,
+        primaryGoal: selectedGoal,
+        payoffPriority: formData.payoffPriority,
         timeHorizon: formData.timeHorizon
       };
       setFinancialContext(context);
@@ -51,20 +64,24 @@ const Onboarding = () => {
   const handleBack = () => {
     if (step > 1) {
       setStep(step - 1);
+    } else {
+      navigate('/');
     }
   };
 
   const isStepValid = () => {
     switch (step) {
       case 1:
-        return formData.name.trim() !== '' && formData.zipCode.trim().length === 5;
+        return formData.ageRange !== '' && formData.employmentStatus !== '';
       case 2:
         return formData.monthlyIncome !== '' && formData.monthlyExpenses !== '' && 
                parseFloat(formData.monthlyIncome) > 0 && parseFloat(formData.monthlyExpenses) >= 0;
       case 3:
         return formData.liquidSavings !== '' && formData.creditScoreRange !== '';
       case 4:
-        return formData.primaryGoal !== '';
+        return formData.payoffPriority !== '' && formData.timeHorizon !== '';
+      case 5:
+        return true; // Step 5 is just informational before going to debt entry
       default:
         return false;
     }
@@ -88,9 +105,20 @@ const Onboarding = () => {
       <div className="container mx-auto px-4 py-8 md:py-12 max-w-3xl">
         <div className="mb-8">
           <h2 className="text-[28px] md:text-[36px] font-bold text-[#002B45] mb-3">
-            Let's understand your financial situation
+            {step === 1 && `Great! Let's get started on your path to ${goalLabels[selectedGoal]}`}
+            {step === 2 && "Let's understand your financial situation"}
+            {step === 3 && "Your savings and credit picture"}
+            {step === 4 && "How you want to tackle debt"}
+            {step === 5 && "And finally, let's understand your debt situation"}
           </h2>
           <p className="text-[16px] md:text-[18px] text-[#3A4F61]">
+            {step === 1 && "We just need a few details to make your plan feel personal and relevant."}
+            {step === 2 && `This helps us see your money flow so that we can guide you towards ${goalLabels[selectedGoal]}.`}
+            {step === 3 && "This helps us create a plan that reduces stress, gives clarity and keeps you in control."}
+            {step === 4 && "We'll make your plan fit your style - fast, steady or somewhere in between."}
+            {step === 5 && "Add each debt individually or upload a CSV with all your debts so that we can create a plan that works for you."}
+          </p>
+          <p className="text-[14px] text-[#4F6A7A] mt-2">
             Step {step} of {totalSteps}
           </p>
         </div>
@@ -98,35 +126,53 @@ const Onboarding = () => {
         <Progress value={(step / totalSteps) * 100} className="mb-8" />
 
         <Card className="border-[1.5px] border-[#D4DFE4]">
-          <CardHeader>
-            <CardTitle className="text-[#002B45]">
-              {step === 1 && 'Welcome! Let\'s get started'}
-              {step === 2 && 'Your Monthly Finances'}
-              {step === 3 && 'Savings & Credit Profile'}
-              {step === 4 && 'Your Goals'}
-            </CardTitle>
-            <CardDescription className="text-[#3A4F61]">
-              {step === 1 && 'Tell us a bit about yourself'}
-              {step === 2 && 'Help us understand your monthly cash flow'}
-              {step === 3 && 'This helps us provide better recommendations'}
-              {step === 4 && 'What matters most to you?'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="pt-6 space-y-6">
             {step === 1 && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="text-[#002B45] font-medium">Your Name</Label>
-                  <Input
-                    id="name"
-                    placeholder="Enter your name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="border-[#D4DFE4]"
-                  />
+                  <Label htmlFor="ageRange" className="text-[#002B45] font-medium">Age Range / Life Stage</Label>
+                  <Select
+                    value={formData.ageRange}
+                    onValueChange={(value) => setFormData({ ...formData, ageRange: value as AgeRange })}
+                  >
+                    <SelectTrigger className="border-[#D4DFE4]">
+                      <SelectValue placeholder="Select your age range" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="18-24">18-24</SelectItem>
+                      <SelectItem value="25-34">25-34</SelectItem>
+                      <SelectItem value="35-44">35-44</SelectItem>
+                      <SelectItem value="45-54">45-54</SelectItem>
+                      <SelectItem value="55-64">55-64</SelectItem>
+                      <SelectItem value="65+">65+</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-[#4F6A7A]">Helps us suggest a plan that fits your stage in life</p>
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="zipCode" className="text-[#002B45] font-medium">ZIP Code</Label>
+                  <Label htmlFor="employmentStatus" className="text-[#002B45] font-medium">Employment Status</Label>
+                  <Select
+                    value={formData.employmentStatus}
+                    onValueChange={(value) => setFormData({ ...formData, employmentStatus: value as EmploymentStatus })}
+                  >
+                    <SelectTrigger className="border-[#D4DFE4]">
+                      <SelectValue placeholder="Select your employment status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="full-time">Full-time</SelectItem>
+                      <SelectItem value="part-time">Part-time</SelectItem>
+                      <SelectItem value="self-employed">Self-employed</SelectItem>
+                      <SelectItem value="unemployed">Unemployed</SelectItem>
+                      <SelectItem value="retired">Retired</SelectItem>
+                      <SelectItem value="student">Student</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-[#4F6A7A]">This helps us understand your income patterns</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="zipCode" className="text-[#002B45] font-medium">ZIP Code (Optional)</Label>
                   <Input
                     id="zipCode"
                     placeholder="12345"
@@ -135,6 +181,7 @@ const Onboarding = () => {
                     onChange={(e) => setFormData({ ...formData, zipCode: e.target.value.replace(/\D/g, '') })}
                     className="border-[#D4DFE4]"
                   />
+                  <p className="text-sm text-[#4F6A7A]">Share for tips and insights specific to your area</p>
                 </div>
               </>
             )}
@@ -156,7 +203,7 @@ const Onboarding = () => {
                     onChange={(e) => setFormData({ ...formData, monthlyIncome: e.target.value })}
                     className="border-[#D4DFE4]"
                   />
-                  <p className="text-sm text-[#4F6A7A]">After taxes and deductions</p>
+                  <p className="text-sm text-[#4F6A7A]">How much money comes in each month for your household (after taxes and deductions)</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="monthlyExpenses" className="text-[#002B45] font-medium">Monthly Expenses</Label>
@@ -168,7 +215,7 @@ const Onboarding = () => {
                     onChange={(e) => setFormData({ ...formData, monthlyExpenses: e.target.value })}
                     className="border-[#D4DFE4]"
                   />
-                  <p className="text-sm text-[#4F6A7A]">Rent, utilities, groceries, etc. (excluding debt payments)</p>
+                  <p className="text-sm text-[#4F6A7A]">Typical spending each month helps us create a realistic plan (rent, utilities, groceries, subscriptions, etc. - excluding debt payments)</p>
                 </div>
                 {formData.monthlyIncome && formData.monthlyExpenses && (
                   <div className="p-4 bg-[#E7F7F4] rounded-lg">
@@ -192,7 +239,7 @@ const Onboarding = () => {
                     onChange={(e) => setFormData({ ...formData, liquidSavings: e.target.value })}
                     className="border-[#D4DFE4]"
                   />
-                  <p className="text-sm text-[#4F6A7A]">Emergency fund, checking, savings accounts</p>
+                  <p className="text-sm text-[#4F6A7A]">How much do you have saved that could help with debt or emergencies</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="creditScore" className="text-[#002B45] font-medium">Credit Score Range</Label>
@@ -211,6 +258,7 @@ const Onboarding = () => {
                       <SelectItem value="800-850">800-850 (Excellent)</SelectItem>
                     </SelectContent>
                   </Select>
+                  <p className="text-sm text-[#4F6A7A]">Sharing this helps us suggest the best repaying strategies for your situation</p>
                 </div>
               </>
             )}
@@ -218,36 +266,47 @@ const Onboarding = () => {
             {step === 4 && (
               <>
                 <div className="space-y-2">
-                  <Label className="text-[#002B45] font-medium">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Target className="w-4 h-4" />
-                      What's your primary goal?
-                    </div>
+                  <Label className="text-[#002B45] font-medium mb-3 block">
+                    Debt Payoff Priority
                   </Label>
                   <div className="space-y-3">
-                    {[
-                      { value: 'lower-payment', label: 'Lower my monthly payments', icon: DollarSign },
-                      { value: 'pay-faster', label: 'Pay off debt as fast as possible', icon: TrendingUp },
-                      { value: 'reduce-interest', label: 'Minimize total interest paid', icon: Target },
-                      { value: 'avoid-default', label: 'Avoid default and stay current', icon: Target }
-                    ].map(({ value, label, icon: Icon }) => (
-                      <button
-                        key={value}
-                        onClick={() => setFormData({ ...formData, primaryGoal: value as PayoffGoal })}
-                        className={`w-full p-4 rounded-xl border-[1.5px] transition-all text-left ${
-                          formData.primaryGoal === value
-                            ? 'border-[#009A8C] bg-[#E7F7F4]'
-                            : 'border-[#D4DFE4] hover:border-[#009A8C]'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <Icon className="w-5 h-5 text-[#009A8C]" />
-                          <span className="font-medium text-[#002B45]">{label}</span>
-                        </div>
-                      </button>
-                    ))}
+                    <button
+                      onClick={() => setFormData({ ...formData, payoffPriority: 'high-interest' })}
+                      className={`w-full p-4 rounded-xl border-[1.5px] transition-all text-left ${
+                        formData.payoffPriority === 'high-interest'
+                          ? 'border-[#009A8C] bg-[#E7F7F4]'
+                          : 'border-[#D4DFE4] hover:border-[#009A8C]'
+                      }`}
+                    >
+                      <div className="font-medium text-[#002B45] mb-1">Tackle high-interest debt first</div>
+                      <p className="text-sm text-[#3A4F61]">Save the most money on interest (Avalanche method)</p>
+                    </button>
+                    <button
+                      onClick={() => setFormData({ ...formData, payoffPriority: 'small-balance' })}
+                      className={`w-full p-4 rounded-xl border-[1.5px] transition-all text-left ${
+                        formData.payoffPriority === 'small-balance'
+                          ? 'border-[#009A8C] bg-[#E7F7F4]'
+                          : 'border-[#D4DFE4] hover:border-[#009A8C]'
+                      }`}
+                    >
+                      <div className="font-medium text-[#002B45] mb-1">Focus on smaller balances</div>
+                      <p className="text-sm text-[#3A4F61]">Build momentum with quick wins (Snowball method)</p>
+                    </button>
+                    <button
+                      onClick={() => setFormData({ ...formData, payoffPriority: 'flexible' })}
+                      className={`w-full p-4 rounded-xl border-[1.5px] transition-all text-left ${
+                        formData.payoffPriority === 'flexible'
+                          ? 'border-[#009A8C] bg-[#E7F7F4]'
+                          : 'border-[#D4DFE4] hover:border-[#009A8C]'
+                      }`}
+                    >
+                      <div className="font-medium text-[#002B45] mb-1">I'm flexible</div>
+                      <p className="text-sm text-[#3A4F61]">Show me both options and let me decide</p>
+                    </button>
                   </div>
+                  <p className="text-sm text-[#4F6A7A] mt-2">Do you want to tackle high-interest debt first or focus on smaller balances?</p>
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="timeHorizon" className="text-[#002B45] font-medium">Preferred Timeline</Label>
                   <Select
@@ -264,58 +323,64 @@ const Onboarding = () => {
                       <SelectItem value="flexible">Flexible</SelectItem>
                     </SelectContent>
                   </Select>
+                  <p className="text-sm text-[#4F6A7A]">When would you like to be debt-free?</p>
                 </div>
               </>
             )}
 
+            {step === 5 && (
+              <div className="py-8 text-center">
+                <div className="mb-6">
+                  <div className="w-16 h-16 bg-[#E7F7F4] rounded-full flex items-center justify-center mx-auto mb-4">
+                    <DollarSign className="w-8 h-8 text-[#009A8C]" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-[#002B45] mb-2">
+                    You're almost there!
+                  </h3>
+                  <p className="text-[#3A4F61]">
+                    Next, you'll add your debts so we can create your personalized payoff plan.
+                  </p>
+                </div>
+                <div className="bg-[#F7F9FA] rounded-lg p-6 text-left">
+                  <h4 className="font-semibold text-[#002B45] mb-3">What you can do:</h4>
+                  <ul className="space-y-2 text-sm text-[#3A4F61]">
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#009A8C] mt-0.5">✓</span>
+                      <span>Add each debt manually with details like balance, APR, and minimum payment</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#009A8C] mt-0.5">✓</span>
+                      <span>Upload a CSV file if you have multiple debts</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#009A8C] mt-0.5">✓</span>
+                      <span>Edit or remove debts anytime</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-between pt-6">
-              {step > 1 && (
-                <Button 
-                  variant="outline" 
-                  onClick={handleBack}
-                  className="border-[#D4DFE4] text-[#002B45] rounded-xl"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back
-                </Button>
-              )}
+              <Button 
+                variant="outline" 
+                onClick={handleBack}
+                className="border-[#D4DFE4] text-[#002B45] rounded-xl"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
               <Button
                 onClick={handleNext}
                 disabled={!isStepValid()}
-                className="ml-auto bg-[#009A8C] hover:bg-[#007F74] text-white font-semibold rounded-xl"
+                className="bg-[#009A8C] hover:bg-[#007F74] text-white font-semibold rounded-xl"
               >
-                {step === totalSteps ? 'Get Started' : 'Next'}
+                {step === totalSteps ? 'Add My Debts' : 'Next'}
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </div>
           </CardContent>
         </Card>
-
-        <div className="mt-8 p-6 bg-white border-[1.5px] border-[#D4DFE4] rounded-xl">
-          <h3 className="font-semibold text-[#002B45] mb-3">What to expect:</h3>
-          <ul className="space-y-2 text-sm text-[#3A4F61]">
-            <li className="flex items-start gap-2">
-              <span className="text-[#009A8C] mt-0.5">✓</span>
-              <span>Enter your debts manually or upload a CSV file</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-[#009A8C] mt-0.5">✓</span>
-              <span>See visual breakdowns of your debt composition</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-[#009A8C] mt-0.5">✓</span>
-              <span>Compare different payoff strategies (Snowball vs. Avalanche)</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-[#009A8C] mt-0.5">✓</span>
-              <span>Explore "What If?" scenarios to test different approaches</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-[#009A8C] mt-0.5">✓</span>
-              <span>Get AI-powered explanations and guidance throughout</span>
-            </li>
-          </ul>
-        </div>
       </div>
     </div>
   );

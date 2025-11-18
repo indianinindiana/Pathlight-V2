@@ -41,7 +41,7 @@ const Index = () => {
     if (onboardingComplete) {
       navigate('/debt-entry');
     } else {
-      navigate('/onboarding');
+      navigate('/onboarding', { state: { selectedGoal } });
     }
   };
 

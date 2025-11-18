@@ -6,6 +6,12 @@ export type PayoffStrategy = 'snowball' | 'avalanche' | 'custom';
 
 export type CreditScoreRange = '300-579' | '580-669' | '670-739' | '740-799' | '800-850';
 
+export type AgeRange = '18-24' | '25-34' | '35-44' | '45-54' | '55-64' | '65+';
+
+export type EmploymentStatus = 'full-time' | 'part-time' | 'self-employed' | 'unemployed' | 'retired' | 'student';
+
+export type PayoffPriority = 'high-interest' | 'small-balance' | 'flexible';
+
 export interface Debt {
   id: string;
   type: DebtType;
@@ -18,13 +24,15 @@ export interface Debt {
 }
 
 export interface FinancialContext {
-  name: string;
-  zipCode: string;
+  ageRange: AgeRange;
+  employmentStatus: EmploymentStatus;
+  zipCode?: string;
   monthlyIncome: number;
   monthlyExpenses: number;
   liquidSavings: number;
   creditScoreRange: CreditScoreRange;
   primaryGoal: PayoffGoal;
+  payoffPriority: PayoffPriority;
   timeHorizon: 'asap' | '1-2-years' | '3-5-years' | 'flexible';
 }
 
