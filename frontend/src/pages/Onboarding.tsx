@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { CreditScoreRange, PayoffGoal, FinancialContext, AgeRange, EmploymentStatus, PayoffPriority } from '@/types/debt';
-import { ArrowRight, ArrowLeft, DollarSign, Compass } from 'lucide-react';
+import { ArrowRight, ArrowLeft, DollarSign, Compass, Flame, Target, Scale, Calendar } from 'lucide-react';
 
 const Onboarding = () => {
   const navigate = useNavigate();
@@ -123,7 +123,10 @@ const Onboarding = () => {
           </p>
         </div>
 
-        <Progress value={(step / totalSteps) * 100} className="mb-8" />
+        <Progress 
+          value={(step / totalSteps) * 100} 
+          className="mb-8 [&>div]:bg-[#009A8C]" 
+        />
 
         <Card className="border-[1.5px] border-[#D4DFE4]">
           <CardContent className="pt-6 space-y-6">
@@ -278,8 +281,19 @@ const Onboarding = () => {
                           : 'border-[#D4DFE4] hover:border-[#009A8C]'
                       }`}
                     >
-                      <div className="font-medium text-[#002B45] mb-1">Tackle high-interest debt first</div>
-                      <p className="text-sm text-[#3A4F61]">Save the most money on interest (Avalanche method)</p>
+                      <div className="flex items-start gap-3">
+                        <div className={`p-2.5 rounded-lg ${
+                          formData.payoffPriority === 'high-interest'
+                            ? 'bg-[#009A8C]/10'
+                            : 'bg-[#F7F9FA]'
+                        }`}>
+                          <Flame className="w-5 h-5 text-[#009A8C]" strokeWidth={2} />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-[#002B45] mb-1">Tackle high-interest debt first</div>
+                          <p className="text-sm text-[#3A4F61]">Save the most money on interest (Avalanche method)</p>
+                        </div>
+                      </div>
                     </button>
                     <button
                       onClick={() => setFormData({ ...formData, payoffPriority: 'small-balance' })}
@@ -289,8 +303,19 @@ const Onboarding = () => {
                           : 'border-[#D4DFE4] hover:border-[#009A8C]'
                       }`}
                     >
-                      <div className="font-medium text-[#002B45] mb-1">Focus on smaller balances</div>
-                      <p className="text-sm text-[#3A4F61]">Build momentum with quick wins (Snowball method)</p>
+                      <div className="flex items-start gap-3">
+                        <div className={`p-2.5 rounded-lg ${
+                          formData.payoffPriority === 'small-balance'
+                            ? 'bg-[#009A8C]/10'
+                            : 'bg-[#F7F9FA]'
+                        }`}>
+                          <Target className="w-5 h-5 text-[#009A8C]" strokeWidth={2} />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-[#002B45] mb-1">Focus on smaller balances</div>
+                          <p className="text-sm text-[#3A4F61]">Build momentum with quick wins (Snowball method)</p>
+                        </div>
+                      </div>
                     </button>
                     <button
                       onClick={() => setFormData({ ...formData, payoffPriority: 'flexible' })}
@@ -300,11 +325,21 @@ const Onboarding = () => {
                           : 'border-[#D4DFE4] hover:border-[#009A8C]'
                       }`}
                     >
-                      <div className="font-medium text-[#002B45] mb-1">I'm flexible</div>
-                      <p className="text-sm text-[#3A4F61]">Show me both options and let me decide</p>
+                      <div className="flex items-start gap-3">
+                        <div className={`p-2.5 rounded-lg ${
+                          formData.payoffPriority === 'flexible'
+                            ? 'bg-[#009A8C]/10'
+                            : 'bg-[#F7F9FA]'
+                        }`}>
+                          <Scale className="w-5 h-5 text-[#009A8C]" strokeWidth={2} />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-[#002B45] mb-1">I'm flexible</div>
+                          <p className="text-sm text-[#3A4F61]">Show me both options and let me decide</p>
+                        </div>
+                      </div>
                     </button>
                   </div>
-                  <p className="text-sm text-[#4F6A7A] mt-2">Do you want to tackle high-interest debt first or focus on smaller balances?</p>
                 </div>
 
                 <div className="space-y-2">
