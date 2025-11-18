@@ -62,6 +62,16 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        navy: {
+          DEFAULT: "#002B45",
+          light: "#003D5C",
+          dark: "#001A2B",
+        },
+        teal: {
+          DEFAULT: "#009A8C",
+          light: "#00BFA9",
+          dark: "#007A6F",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
