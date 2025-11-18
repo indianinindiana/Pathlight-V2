@@ -121,7 +121,7 @@ const Index = () => {
               size="lg"
               onClick={handleContinue}
               disabled={!selectedGoal}
-              className="w-full md:w-auto md:min-w-[320px] mx-auto block bg-[#009A8C] hover:bg-[#007F74] text-white font-semibold text-[18px] py-4 px-8 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#009A8C] disabled:hover:shadow-md hover:scale-[1.02]"
+              className="w-full md:w-auto md:min-w-[320px] mx-auto flex items-center justify-center bg-[#009A8C] hover:bg-[#007F74] text-white font-semibold text-[18px] py-5 px-8 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#009A8C] disabled:hover:shadow-md hover:scale-[1.02]"
             >
               Show me my path forward
               <ArrowRight className="ml-2 w-5 h-5" />
@@ -184,7 +184,7 @@ const Index = () => {
       </div>
 
       {/* How It Works Section */}
-      <div className="bg-[#F7F9FA] py-16 md:py-24 mt-12">
+      <div className="bg-[#F7F9FA] py-16 md:py-24 mt-8">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-3xl md:text-4xl font-bold text-center text-[#002B45] mb-4">
@@ -199,7 +199,7 @@ const Index = () => {
                 {
                   number: "1",
                   title: "Share Your Situation",
-                  description: "Tell us about your debts, income, and goals. Takes just a few minutes."
+                  description: "Tell us about your debts, income, and expenses so that we can guide you towards the best path forward."
                 },
                 {
                   number: "2",
@@ -242,11 +242,11 @@ const Index = () => {
               onClick={handleContinue}
               className="bg-[#009A8C] hover:bg-[#007F74] text-white font-semibold text-[18px] py-4 px-12 rounded-xl shadow-xl hover:shadow-2xl transition-all duration-200 hover:scale-[1.02]"
             >
-              {onboardingComplete ? 'Continue Your Journey' : 'Get Started Free'}
+              {onboardingComplete ? 'Continue Your Journey' : 'Get Started Now'}
               <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
             <p className="text-white/60 text-sm mt-6">
-              No credit card required • Takes a few minutes • 100% free
+              Reduce stress, gain clarity and discover the best path to becoming debt-free
             </p>
           </div>
         </div>
