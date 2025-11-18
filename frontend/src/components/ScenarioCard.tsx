@@ -19,11 +19,12 @@ const ScenarioCard = ({ scenario, isSelected = false, onClick }: ScenarioCardPro
     }).format(amount);
   };
 
-  const formatDate = (date: Date) => {
-    return new Intl.DateFormat('en-US', {
+  const formatDate = (date: Date | string) => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return dateObj.toLocaleDateString('en-US', {
       month: 'short',
       year: 'numeric',
-    }).format(date);
+    });
   };
 
   const getStrategyBadge = () => {

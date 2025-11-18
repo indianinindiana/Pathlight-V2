@@ -16,6 +16,14 @@ const ScenarioComparison = ({ scenarios }: ScenarioComparisonProps) => {
     }).format(amount);
   };
 
+  const formatDate = (date: Date | string) => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return dateObj.toLocaleDateString('en-US', {
+      month: 'short',
+      year: 'numeric',
+    });
+  };
+
   const comparisonData = scenarios.map((scenario) => ({
     name: scenario.name,
     'Total Interest': scenario.totalInterest,
@@ -95,7 +103,7 @@ const ScenarioComparison = ({ scenarios }: ScenarioComparisonProps) => {
                     <td className="py-3 px-4 text-sm text-[#002B45] text-right">{formatCurrency(scenario.totalInterest)}</td>
                     <td className="py-3 px-4 text-sm text-[#002B45] text-right">{scenario.totalMonths} months</td>
                     <td className="py-3 px-4 text-sm text-[#002B45] text-right">
-                      {new Intl.DateFormat('en-US', { month: 'short', year: 'numeric' }).format(scenario.payoffDate)}
+                      {formatDate(scenario.payoffDate)}
                     </td>
                   </tr>
                 ))}
