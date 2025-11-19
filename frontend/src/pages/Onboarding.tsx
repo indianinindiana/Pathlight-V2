@@ -7,8 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
-import { CreditScoreRange, PayoffGoal, FinancialContext, AgeRange, EmploymentStatus, PayoffPriority } from '@/types/debt';
-import { ArrowRight, ArrowLeft, DollarSign, Compass, Flame, Target, Scale, Calendar } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
+import { CreditScoreRange, PayoffGoal, FinancialContext, AgeRange, EmploymentStatus, PayoffPriority, StressLevel } from '@/types/debt';
+import { ArrowRight, ArrowLeft, DollarSign, Compass, Zap, Percent, PiggyBank, LifeBuoy } from 'lucide-react';
 
 const Onboarding = () => {
   const navigate = useNavigate();
@@ -35,8 +36,18 @@ const Onboarding = () => {
     liquidSavings: '',
     creditScoreRange: '' as CreditScoreRange,
     payoffPriority: '' as PayoffPriority,
-    timeHorizon: 'flexible' as 'asap' | '1-2-years' | '3-5-years' | 'flexible'
+    stressLevel: 3 as StressLevel
   });
+
+  const stressEmojis = ['😌', '🙂', '😐', '😟', '😰'];
+  const stressLabels = [
+    'I feel confident managing my debt.',
+    'Manageable, but could be better.',
+    'Starting to feel the pressure.',
+    'Debt is weighing on me daily.',
+    'Debt is causing me significant stress; I need help ASAP.'
+  ];
+  const stressColors = ['#10B981', '#84CC16', '#EAB308', '#F97316', '#EF4444'];
 
   const handleNext = () => {
     if (step < totalSteps) {
@@ -53,7 +64,7 @@ const Onboarding = () => {
         creditScoreRange: formData.creditScoreRange,
         primaryGoal: selectedGoal,
         payoffPriority: formData.payoffPriority,
-        timeHorizon: formData.timeHorizon
+        stressLevel: formData.stressLevel
       };
       setFinancialContext(context);
       setOnboardingComplete(true);
@@ -79,9 +90,9 @@ const Onboarding = () => {
       case 3:
         return formData.liquidSavings !== '' && formData.creditScoreRange !== '';
       case 4:
-        return formData.payoffPriority !== '' && formData.timeHorizon !== '';
+        return formData.payoffPriority !== '';
       case 5:
-        return true; // Step 5 is just informational before going to debt entry
+        return true;
       default:
         return false;
     }
@@ -115,7 +126,7 @@ const Onboarding = () => {
             {step === 1 && "We just need a few details to make your plan feel personal and relevant."}
             {step === 2 && `This helps us see your money flow so that we can guide you towards ${goalLabels[selectedGoal]}.`}
             {step === 3 && "This helps us create a plan that reduces stress, gives clarity and keeps you in control."}
-            {step === 4 && "We'll make your plan fit your style - fast, steady or somewhere in between."}
+            {step === 4 && "We'll make your plan fit your style and stress level."}
             {step === 5 && "Add each debt individually or upload a CSV with all your debts so that we can create a plan that works for you."}
           </p>
           <p className="text-[14px] text-[#4F6A7A] mt-2">
@@ -145,9 +156,8 @@ const Onboarding = () => {
                       <SelectItem value="18-24">18-24</SelectItem>
                       <SelectItem value="25-34">25-34</SelectItem>
                       <SelectItem value="35-44">35-44</SelectItem>
-                      <SelectItem value="45-54">45-54</SelectItem>
-                      <SelectItem value="55-64">55-64</SelectItem>
-                      <SelectItem value="65+">65+</SelectItem>
+                      <SelectItem value="45-59">45-59</SelectItem>
+                      <SelectItem value="60+">60+</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-sm text-[#4F6A7A]">Helps us suggest a plan that fits your stage in life</p>
@@ -274,91 +284,140 @@ const Onboarding = () => {
                   </Label>
                   <div className="space-y-3">
                     <button
-                      onClick={() => setFormData({ ...formData, payoffPriority: 'high-interest' })}
+                      onClick={() => setFormData({ ...formData, payoffPriority: 'aggressive-freedom' })}
                       className={`w-full p-4 rounded-xl border-[1.5px] transition-all text-left ${
-                        formData.payoffPriority === 'high-interest'
+                        formData.payoffPriority === 'aggressive-freedom'
                           ? 'border-[#009A8C] bg-[#E7F7F4]'
                           : 'border-[#D4DFE4] hover:border-[#009A8C]'
                       }`}
                     >
                       <div className="flex items-start gap-3">
                         <div className={`p-2.5 rounded-lg ${
-                          formData.payoffPriority === 'high-interest'
+                          formData.payoffPriority === 'aggressive-freedom'
                             ? 'bg-[#009A8C]/10'
                             : 'bg-[#F7F9FA]'
                         }`}>
-                          <Flame className="w-5 h-5 text-[#009A8C]" strokeWidth={2} />
+                          <Zap className="w-5 h-5 text-[#009A8C]" strokeWidth={2} />
                         </div>
                         <div className="flex-1">
-                          <div className="font-medium text-[#002B45] mb-1">Tackle high-interest debt first</div>
-                          <p className="text-sm text-[#3A4F61]">Save the most money on interest (Avalanche method)</p>
+                          <div className="font-medium text-[#002B45] mb-1">Aggressive Debt Freedom</div>
+                          <p className="text-sm text-[#3A4F61]">I want to get out of debt as fast as possible.</p>
                         </div>
                       </div>
                     </button>
+                    
                     <button
-                      onClick={() => setFormData({ ...formData, payoffPriority: 'small-balance' })}
+                      onClick={() => setFormData({ ...formData, payoffPriority: 'minimize-interest' })}
                       className={`w-full p-4 rounded-xl border-[1.5px] transition-all text-left ${
-                        formData.payoffPriority === 'small-balance'
+                        formData.payoffPriority === 'minimize-interest'
                           ? 'border-[#009A8C] bg-[#E7F7F4]'
                           : 'border-[#D4DFE4] hover:border-[#009A8C]'
                       }`}
                     >
                       <div className="flex items-start gap-3">
                         <div className={`p-2.5 rounded-lg ${
-                          formData.payoffPriority === 'small-balance'
+                          formData.payoffPriority === 'minimize-interest'
                             ? 'bg-[#009A8C]/10'
                             : 'bg-[#F7F9FA]'
                         }`}>
-                          <Target className="w-5 h-5 text-[#009A8C]" strokeWidth={2} />
+                          <Percent className="w-5 h-5 text-[#009A8C]" strokeWidth={2} />
                         </div>
                         <div className="flex-1">
-                          <div className="font-medium text-[#002B45] mb-1">Focus on smaller balances</div>
-                          <p className="text-sm text-[#3A4F61]">Build momentum with quick wins (Snowball method)</p>
+                          <div className="font-medium text-[#002B45] mb-1">Minimize Interest</div>
+                          <p className="text-sm text-[#3A4F61]">I want to pay the least interest over time.</p>
                         </div>
                       </div>
                     </button>
+                    
                     <button
-                      onClick={() => setFormData({ ...formData, payoffPriority: 'flexible' })}
+                      onClick={() => setFormData({ ...formData, payoffPriority: 'balance-savings' })}
                       className={`w-full p-4 rounded-xl border-[1.5px] transition-all text-left ${
-                        formData.payoffPriority === 'flexible'
+                        formData.payoffPriority === 'balance-savings'
                           ? 'border-[#009A8C] bg-[#E7F7F4]'
                           : 'border-[#D4DFE4] hover:border-[#009A8C]'
                       }`}
                     >
                       <div className="flex items-start gap-3">
                         <div className={`p-2.5 rounded-lg ${
-                          formData.payoffPriority === 'flexible'
+                          formData.payoffPriority === 'balance-savings'
                             ? 'bg-[#009A8C]/10'
                             : 'bg-[#F7F9FA]'
                         }`}>
-                          <Scale className="w-5 h-5 text-[#009A8C]" strokeWidth={2} />
+                          <PiggyBank className="w-5 h-5 text-[#009A8C]" strokeWidth={2} />
                         </div>
                         <div className="flex-1">
-                          <div className="font-medium text-[#002B45] mb-1">I'm flexible</div>
-                          <p className="text-sm text-[#3A4F61]">Show me both options and let me decide</p>
+                          <div className="font-medium text-[#002B45] mb-1">Balance Debt + Savings</div>
+                          <p className="text-sm text-[#3A4F61]">I need to build savings while paying down debt.</p>
+                        </div>
+                      </div>
+                    </button>
+                    
+                    <button
+                      onClick={() => setFormData({ ...formData, payoffPriority: 'cash-flow-relief' })}
+                      className={`w-full p-4 rounded-xl border-[1.5px] transition-all text-left ${
+                        formData.payoffPriority === 'cash-flow-relief'
+                          ? 'border-[#009A8C] bg-[#E7F7F4]'
+                          : 'border-[#D4DFE4] hover:border-[#009A8C]'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`p-2.5 rounded-lg ${
+                          formData.payoffPriority === 'cash-flow-relief'
+                            ? 'bg-[#009A8C]/10'
+                            : 'bg-[#F7F9FA]'
+                        }`}>
+                          <LifeBuoy className="w-5 h-5 text-[#009A8C]" strokeWidth={2} />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-[#002B45] mb-1">Cash Flow Relief</div>
+                          <p className="text-sm text-[#3A4F61]">I need to reduce my monthly payments to stay afloat.</p>
                         </div>
                       </div>
                     </button>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="timeHorizon" className="text-[#002B45] font-medium">Preferred Timeline</Label>
-                  <Select
-                    value={formData.timeHorizon}
-                    onValueChange={(value) => setFormData({ ...formData, timeHorizon: value as any })}
-                  >
-                    <SelectTrigger className="border-[#D4DFE4]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="asap">As soon as possible</SelectItem>
-                      <SelectItem value="1-2-years">1-2 years</SelectItem>
-                      <SelectItem value="3-5-years">3-5 years</SelectItem>
-                      <SelectItem value="flexible">Flexible</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-sm text-[#4F6A7A]">When would you like to be debt-free?</p>
+                <div className="space-y-4">
+                  <Label className="text-[#002B45] font-medium">Stress Score</Label>
+                  <div className="space-y-4">
+                    <div className="flex justify-center">
+                      <div 
+                        className="text-6xl transition-all duration-300"
+                        style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }}
+                      >
+                        {stressEmojis[formData.stressLevel - 1]}
+                      </div>
+                    </div>
+                    
+                    <Slider
+                      value={[formData.stressLevel]}
+                      onValueChange={(value) => setFormData({ ...formData, stressLevel: value[0] as StressLevel })}
+                      min={1}
+                      max={5}
+                      step={1}
+                      className="w-full"
+                    />
+                    
+                    <div className="flex justify-between text-xs text-[#4F6A7A] px-1">
+                      <span>1</span>
+                      <span>2</span>
+                      <span>3</span>
+                      <span>4</span>
+                      <span>5</span>
+                    </div>
+                    
+                    <div 
+                      className="p-4 rounded-lg text-center transition-all duration-300"
+                      style={{ 
+                        backgroundColor: `${stressColors[formData.stressLevel - 1]}15`,
+                        borderLeft: `4px solid ${stressColors[formData.stressLevel - 1]}`
+                      }}
+                    >
+                      <p className="text-sm font-medium text-[#002B45]">
+                        {stressLabels[formData.stressLevel - 1]}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </>
             )}

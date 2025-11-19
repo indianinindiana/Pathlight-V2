@@ -4,8 +4,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Debt, DebtType } from '@/types/debt';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, AlertCircle } from 'lucide-react';
 import { suggestMinimumPayment, validateMinimumPayment } from '@/utils/debtCalculations';
 import { showSuccess, showError } from '@/utils/toast';
 
@@ -24,20 +25,23 @@ const DebtEntryForm = ({ onAdd, onCancel, editingDebt, onUpdate }: DebtEntryForm
     apr: string;
     minimumPayment: string;
     nextPaymentDate: string;
+    isDelinquent: boolean;
   }>(editingDebt ? {
     type: editingDebt.type,
     name: editingDebt.name,
     balance: editingDebt.balance.toString(),
     apr: editingDebt.apr.toString(),
     minimumPayment: editingDebt.minimumPayment.toString(),
-    nextPaymentDate: editingDebt.nextPaymentDate.toISOString().split('T')[0]
+    nextPaymentDate: editingDebt.nextPaymentDate.toISOString().split('T')[0],
+    isDelinquent: editingDebt.isDelinquent || false
   } : {
     type: 'credit-card',
     name: '',
     balance: '',
     apr: '',
     minimumPayment: '',
-    nextPaymentDate: new Date().toISOString().split('T')[0]
+    nextPaymentDate: new Date().toISOString().split('T')[0],
+    isDelinquent: false
   });
 
   const [showMinPaymentWarning, setShowMinPaymentWarning] = useState(false);
@@ -64,7 +68,8 @@ const DebtEntryForm = ({ onAdd, onCancel, editingDebt, onUpdate }: DebtEntryForm
         balance,
         apr,
         minimumPayment,
-        nextPaymentDate: new Date(formData.nextPaymentDate)
+        nextPaymentDate: new Date(formData.nextPaymentDate),
+        isDelinquent: formData.isDelinquent
       });
       showSuccess('Debt updated successfully');
     } else {
@@ -75,7 +80,8 @@ const DebtEntryForm = ({ onAdd, onCancel, editingDebt, onUpdate }: DebtEntryForm
         balance,
         apr,
         minimumPayment,
-        nextPaymentDate: new Date(formData.nextPaymentDate)
+        nextPaymentDate: new Date(formData.nextPaymentDate),
+        isDelinquent: formData.isDelinquent
       };
       onAdd(newDebt);
       showSuccess('Debt added successfully');
@@ -88,7 +94,8 @@ const DebtEntryForm = ({ onAdd, onCancel, editingDebt, onUpdate }: DebtEntryForm
       balance: '',
       apr: '',
       minimumPayment: '',
-      nextPaymentDate: new Date().toISOString().split('T')[0]
+      nextPaymentDate: new Date().toISOString().split('T')[0],
+      isDelinquent: false
     });
     setShowMinPaymentWarning(false);
   };
@@ -209,6 +216,23 @@ const DebtEntryForm = ({ onAdd, onCancel, editingDebt, onUpdate }: DebtEntryForm
                 onChange={(e) => setFormData({ ...formData, nextPaymentDate: e.target.value })}
                 className="border-[#D4DFE4]"
               />
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+            <Checkbox
+              id="isDelinquent"
+              checked={formData.isDelinquent}
+              onCheckedChange={(checked) => setFormData({ ...formData, isDelinquent: checked as boolean })}
+            />
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-orange-600" />
+              <Label
+                htmlFor="isDelinquent"
+                className="text-sm font-medium text-orange-900 cursor-pointer"
+              >
+                This debt is currently delinquent (past due)
+              </Label>
             </div>
           </div>
 

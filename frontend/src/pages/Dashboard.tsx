@@ -1,16 +1,23 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDebt } from '@/context/DebtContext';
 import { Button } from '@/components/ui/button';
 import { Compass, ArrowRight, DollarSign, Percent, TrendingDown, Calendar } from 'lucide-react';
 import MetricsCard from '@/components/MetricsCard';
 import DebtCompositionChart from '@/components/DebtCompositionChart';
+import DebtListTable from '@/components/DebtListTable';
+import DebtEntryForm from '@/components/DebtEntryForm';
+import { Debt } from '@/types/debt';
 import { calculateTotalDebt, calculateWeightedAPR, calculateTotalMinimumPayment, calculateDebtToIncome } from '@/utils/debtCalculations';
+import { showSuccess } from '@/utils/toast';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { debts, financialContext } = useDebt();
+  const { debts, financialContext, addDebt, updateDebt, deleteDebt } = useDebt();
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingDebt, setEditingDebt] = useState<Debt | null>(null);
 
-  if (debts.length === 0) {
+  if (debts.length === 0 && !showAddForm) {
     navigate('/debt-entry');
     return null;
   }
@@ -19,6 +26,26 @@ const Dashboard = () => {
   const weightedAPR = calculateWeightedAPR(debts);
   const totalMinPayment = calculateTotalMinimumPayment(debts);
   const debtToIncome = financialContext ? calculateDebtToIncome(totalDebt, financialContext.monthlyIncome) : 0;
+
+  const handleAddDebt = (debt: Debt) => {
+    addDebt(debt);
+    setShowAddForm(false);
+  };
+
+  const handleUpdateDebt = (id: string, updates: Partial<Debt>) => {
+    updateDebt(id, updates);
+    setEditingDebt(null);
+  };
+
+  const handleEditDebt = (debt: Debt) => {
+    setEditingDebt(debt);
+    setShowAddForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleUpdatePriority = (debtId: string, priority: number) => {
+    updateDebt(debtId, { customOrder: priority });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50/30 to-teal-50/20">
@@ -46,6 +73,21 @@ const Dashboard = () => {
             Here's an overview of your current debt situation
           </p>
         </div>
+
+        {/* Add/Edit Form */}
+        {showAddForm && (
+          <div className="mb-8">
+            <DebtEntryForm
+              onAdd={handleAddDebt}
+              onCancel={() => {
+                setShowAddForm(false);
+                setEditingDebt(null);
+              }}
+              editingDebt={editingDebt}
+              onUpdate={handleUpdateDebt}
+            />
+          </div>
+        )}
 
         {/* Metrics Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -106,6 +148,20 @@ const Dashboard = () => {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Debt List Table */}
+        <div className="mb-8">
+          <DebtListTable
+            debts={debts}
+            onEdit={handleEditDebt}
+            onDelete={deleteDebt}
+            onAddNew={() => {
+              setShowAddForm(true);
+              setEditingDebt(null);
+            }}
+            onUpdatePriority={handleUpdatePriority}
+          />
         </div>
 
         {/* CTA Section */}
