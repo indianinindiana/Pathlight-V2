@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Compass, ArrowLeft, Plus, Download } from 'lucide-react';
+import { Compass, ArrowLeft, Plus, Download, Lightbulb } from 'lucide-react';
 import ScenarioCard from '@/components/ScenarioCard';
 import ScenarioComparison from '@/components/ScenarioComparison';
 import { calculatePayoffScenario, calculateTotalMinimumPayment } from '@/utils/debtCalculations';
@@ -127,6 +127,33 @@ const Scenarios = () => {
             See how different approaches can help you become debt-free
           </p>
         </div>
+
+        {/* What-If CTA */}
+        <Card className="border-[1.5px] border-[#009A8C] bg-[#E7F7F4] mb-8">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-[#009A8C]/10 rounded-lg">
+                  <Lightbulb className="w-6 h-6 text-[#009A8C]" strokeWidth={2} />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-[#002B45] text-lg mb-1">
+                    Want to explore more options?
+                  </h3>
+                  <p className="text-sm text-[#3A4F61]">
+                    Try "What If?" scenarios to see how paying extra, consolidating, or other strategies could change your payoff journey
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={() => navigate('/what-if')}
+                className="bg-[#009A8C] hover:bg-[#007F74] text-white rounded-xl whitespace-nowrap"
+              >
+                Explore What-If Scenarios
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Scenario Cards */}
         <div className="mb-8">

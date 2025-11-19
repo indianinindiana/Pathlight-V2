@@ -9,6 +9,7 @@ import Onboarding from "./pages/Onboarding";
 import DebtEntry from "./pages/DebtEntry";
 import Dashboard from "./pages/Dashboard";
 import Scenarios from "./pages/Scenarios";
+import WhatIfScenarios from "./pages/WhatIfScenarios";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/debt-entry" element={<DebtEntry />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/scenarios" element={<Scenarios />} />
+            <Route path="/what-if" element={<WhatIfScenarios />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
