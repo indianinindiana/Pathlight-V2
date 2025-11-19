@@ -81,7 +81,7 @@ const Index = () => {
         {!onboardingComplete && (
           <div className="max-w-3xl mx-auto">
             <p className="text-center text-[18px] font-semibold text-[#002B45] mb-8">
-              Pick your goal - let's make a plan you'll feel great about.
+              What's your biggest money goal right now?
             </p>
 
             <div className="grid md:grid-cols-2 gap-4 mb-8">

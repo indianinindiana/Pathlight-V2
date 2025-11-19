@@ -14,6 +14,13 @@ export type PayoffPriority = 'aggressive-freedom' | 'minimize-interest' | 'balan
 
 export type StressLevel = 1 | 2 | 3 | 4 | 5;
 
+export type LifeEvent = 
+  | 'income-increase'
+  | 'income-decrease'
+  | 'major-expense'
+  | 'household-changes'
+  | 'other-goals';
+
 export interface Debt {
   id: string;
   type: DebtType;
@@ -35,8 +42,9 @@ export interface FinancialContext {
   liquidSavings: number;
   creditScoreRange: CreditScoreRange;
   primaryGoal: PayoffGoal;
-  payoffPriority: PayoffPriority;
+  payoffPriority?: PayoffPriority;
   stressLevel: StressLevel;
+  lifeEvents?: LifeEvent[];
 }
 
 export interface PayoffScenario {
