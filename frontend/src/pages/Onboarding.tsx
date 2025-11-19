@@ -9,9 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Progress } from '@/components/ui/progress';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { CreditScoreRange, PayoffGoal, FinancialContext, AgeRange, EmploymentStatus, StressLevel, LifeEvent } from '@/types/debt';
-import { ArrowRight, ArrowLeft, DollarSign, Compass, HelpCircle, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, ArrowLeft, DollarSign, Compass, CheckCircle2 } from 'lucide-react';
 
 const Onboarding = () => {
   const navigate = useNavigate();
@@ -106,6 +105,63 @@ const Onboarding = () => {
     return '';
   };
 
+  const getGoalInsight = (goal: PayoffGoal): string => {
+    const insights: Record<PayoffGoal, string> = {
+      'pay-faster': "Your determination to become debt-free quickly shows real commitment — we'll help you get there.",
+      'lower-payment': "Creating breathing room in your budget is a smart move — let's find ways to ease the pressure.",
+      'reduce-interest': "Minimizing interest is one of the smartest ways to save money — you're thinking strategically.",
+      'avoid-default': "Staying current is crucial, and asking for help shows strength — we're here to support you."
+    };
+    return insights[goal];
+  };
+
+  const getStressInsight = (level: StressLevel): string => {
+    const insights = [
+      "Your confidence is a great foundation — let's build on it.",
+      "You're managing well, and we'll help make things even better.",
+      "Feeling the pressure is normal — you're taking the right step by seeking help.",
+      "We understand how heavy this feels — you're not alone in this journey.",
+      "We hear you, and we're here to help lighten this burden right away."
+    ];
+    return insights[level - 1];
+  };
+
+  const getLifeEventsInsight = (events: LifeEvent[]): string => {
+    if (events.length === 0) return "Focusing on debt without major changes ahead — that's a great position to be in.";
+    if (events.length === 1) return "Planning ahead for life changes shows wisdom — we'll factor this into your strategy.";
+    return "You have a lot on your plate — we'll create a flexible plan that adapts to your changing needs.";
+  };
+
+  const getSituationInsight = (age: AgeRange, employment: EmploymentStatus): string => {
+    const ageInsights: Record<AgeRange, string> = {
+      '18-24': "Starting early gives you a huge advantage",
+      '25-34': "You're in a prime position to build momentum",
+      '35-44': "Your experience helps you make informed decisions",
+      '45-59': "Your stability is a strong foundation",
+      '60+': "Your wisdom and planning will guide you through"
+    };
+    return `${ageInsights[age]} — we'll tailor everything to your situation.`;
+  };
+
+  const getCashFlowInsight = (available: number): string => {
+    if (available > 1000) return "You have solid room to accelerate your debt payoff — let's maximize this opportunity.";
+    if (available > 500) return "You have meaningful flexibility — we'll help you use it wisely.";
+    if (available > 100) return "Every dollar counts, and we'll show you how to make the most of what you have.";
+    if (available > 0) return "Your budget is tight, but there's still a path forward — we'll find it together.";
+    return "Money is tight right now, but we'll help you find ways to create breathing room.";
+  };
+
+  const getCreditScoreLabel = (range: CreditScoreRange): string => {
+    const labels: Record<CreditScoreRange, string> = {
+      '300-579': 'Poor (300-579)',
+      '580-669': 'Fair (580-669)',
+      '670-739': 'Good (670-739)',
+      '740-799': 'Very Good (740-799)',
+      '800-850': 'Excellent (800-850)'
+    };
+    return labels[range];
+  };
+
   const handleNext = () => {
     if (step < totalSteps) {
       setStep(step + 1);
@@ -154,6 +210,12 @@ const Onboarding = () => {
     }
   };
 
+  const calculateAvailableCashFlow = () => {
+    const income = parseFloat(formData.monthlyIncome);
+    const expenses = parseFloat(formData.monthlyExpenses);
+    return income - expenses;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50/30 to-teal-50/20">
       {/* Header */}
@@ -183,7 +245,7 @@ const Onboarding = () => {
             {step === 2 && "Now let's gather some personal details to guide smarter recommendations."}
             {step === 3 && "Understanding your cash flow helps us create a realistic plan."}
             {step === 4 && "Your savings and credit picture helps us tailor the best strategies."}
-            {step === 5 && "Just add your debts and we'll create your personalized payoff plan."}
+            {step === 5 && "Let's quickly review what you shared and we'll work on creating your personalized payoff plan"}
           </p>
           <p className="text-[14px] text-[#4F6A7A] mt-2">
             Step {step} of {totalSteps}
@@ -197,316 +259,323 @@ const Onboarding = () => {
 
         <Card className="border-[1.5px] border-[#D4DFE4]">
           <CardContent className="pt-6 space-y-6">
-            <TooltipProvider>
-              {/* STEP 1: Stress & Life Events */}
-              {step === 1 && (
-                <>
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <Label className="text-[#002B45] font-medium">
-                        How stressed do you feel about your debt right now?
-                      </Label>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <HelpCircle className="w-4 h-4 text-[#4F6A7A]" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="max-w-xs">Helps us understand how urgent things feel so we can tailor a plan that meets you where you are.</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      <div className="flex justify-center">
-                        <div 
-                          className="text-6xl transition-all duration-300"
-                          style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }}
-                        >
-                          {stressEmojis[formData.stressLevel - 1]}
-                        </div>
-                      </div>
-                      
-                      <Slider
-                        value={[formData.stressLevel]}
-                        onValueChange={(value) => setFormData({ ...formData, stressLevel: value[0] as StressLevel })}
-                        min={1}
-                        max={5}
-                        step={1}
-                        className="w-full"
-                      />
-                      
-                      <div className="flex justify-between text-xs text-[#4F6A7A] px-1">
-                        <span>1</span>
-                        <span>2</span>
-                        <span>3</span>
-                        <span>4</span>
-                        <span>5</span>
-                      </div>
-                      
-                      <div 
-                        className="p-4 rounded-lg text-center transition-all duration-300"
-                        style={{ 
-                          backgroundColor: `${stressColors[formData.stressLevel - 1]}15`,
-                          borderLeft: `4px solid ${stressColors[formData.stressLevel - 1]}`
-                        }}
-                      >
-                        <p className="text-sm font-medium text-[#002B45]">
-                          {stressLabels[formData.stressLevel - 1]}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Label className="text-[#002B45] font-medium">
-                        Any major life events coming up in the next 6–12 months? (Optional)
-                      </Label>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <HelpCircle className="w-4 h-4 text-[#4F6A7A]" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="max-w-xs">Life events can affect your cash flow. Sharing helps us design a plan that adapts.</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                    
-                    <div className="flex flex-wrap gap-2">
-                      {lifeEventOptions.map((option) => (
-                        <Badge
-                          key={option.value}
-                          variant={formData.lifeEvents.includes(option.value) ? 'default' : 'outline'}
-                          className={`cursor-pointer px-4 py-2 text-sm transition-all ${
-                            formData.lifeEvents.includes(option.value)
-                              ? 'bg-[#009A8C] hover:bg-[#007F74] text-white border-[#009A8C]'
-                              : 'border-[#D4DFE4] text-[#3A4F61] hover:border-[#009A8C]'
-                          }`}
-                          onClick={() => toggleLifeEvent(option.value)}
-                        >
-                          {formData.lifeEvents.includes(option.value) && (
-                            <CheckCircle2 className="w-3 h-3 mr-1 inline" />
-                          )}
-                          {option.label}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* STEP 2: Age & Employment */}
-              {step === 2 && (
-                <>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor="ageRange" className="text-[#002B45] font-medium">
-                        What's your age range?
-                      </Label>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <HelpCircle className="w-4 h-4 text-[#4F6A7A]" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="max-w-xs">Different life stages come with different financial patterns — your answer guides smarter recommendations.</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                    <Select
-                      value={formData.ageRange}
-                      onValueChange={(value) => setFormData({ ...formData, ageRange: value as AgeRange })}
-                    >
-                      <SelectTrigger className="border-[#D4DFE4]">
-                        <SelectValue placeholder="Select your age range" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="18-24">18-24</SelectItem>
-                        <SelectItem value="25-34">25-34</SelectItem>
-                        <SelectItem value="35-44">35-44</SelectItem>
-                        <SelectItem value="45-59">45-59</SelectItem>
-                        <SelectItem value="60+">60+</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor="employmentStatus" className="text-[#002B45] font-medium">
-                        What's your employment situation?
-                      </Label>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <HelpCircle className="w-4 h-4 text-[#4F6A7A]" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="max-w-xs">This helps us understand income stability and tailor your monthly plan.</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                    <Select
-                      value={formData.employmentStatus}
-                      onValueChange={(value) => setFormData({ ...formData, employmentStatus: value as EmploymentStatus })}
-                    >
-                      <SelectTrigger className="border-[#D4DFE4]">
-                        <SelectValue placeholder="Select your employment status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="full-time">Full-time</SelectItem>
-                        <SelectItem value="part-time">Part-time</SelectItem>
-                        <SelectItem value="self-employed">Self-employed</SelectItem>
-                        <SelectItem value="unemployed">Unemployed</SelectItem>
-                        <SelectItem value="retired">Retired</SelectItem>
-                        <SelectItem value="student">Student</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </>
-              )}
-
-              {/* STEP 3: Income & Expenses */}
-              {step === 3 && (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="monthlyIncome" className="text-[#002B45] font-medium">
-                      <div className="flex items-center gap-2">
-                        <DollarSign className="w-4 h-4" />
-                        Monthly Take-Home Income
-                      </div>
+            {/* STEP 1: Stress & Life Events */}
+            {step === 1 && (
+              <>
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-[#002B45] font-medium">
+                      How stressed do you feel about your debt right now?
                     </Label>
-                    <Input
-                      id="monthlyIncome"
-                      type="number"
-                      placeholder="3500"
-                      value={formData.monthlyIncome}
-                      onChange={(e) => setFormData({ ...formData, monthlyIncome: e.target.value })}
-                      className="border-[#D4DFE4]"
-                    />
-                    <p className="text-sm text-[#4F6A7A]">How much money comes in each month for your household (after taxes and deductions)</p>
+                    <p className="text-sm text-[#4F6A7A] mt-1">
+                      Helps us understand how urgent things feel so we can tailor a plan that meets you where you are.
+                    </p>
                   </div>
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="monthlyExpenses" className="text-[#002B45] font-medium">Monthly Expenses</Label>
-                    <Input
-                      id="monthlyExpenses"
-                      type="number"
-                      placeholder="2500"
-                      value={formData.monthlyExpenses}
-                      onChange={(e) => setFormData({ ...formData, monthlyExpenses: e.target.value })}
-                      className="border-[#D4DFE4]"
+                  <div className="space-y-4">
+                    <div className="flex justify-center">
+                      <div 
+                        className="text-6xl transition-all duration-300"
+                        style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }}
+                      >
+                        {stressEmojis[formData.stressLevel - 1]}
+                      </div>
+                    </div>
+                    
+                    <Slider
+                      value={[formData.stressLevel]}
+                      onValueChange={(value) => setFormData({ ...formData, stressLevel: value[0] as StressLevel })}
+                      min={1}
+                      max={5}
+                      step={1}
+                      className="w-full"
                     />
-                    <p className="text-sm text-[#4F6A7A]">Typical spending each month (rent, utilities, groceries, subscriptions, etc. - excluding debt payments)</p>
-                  </div>
-                  
-                  {formData.monthlyIncome && formData.monthlyExpenses && (
-                    <div className="p-4 bg-[#E7F7F4] rounded-lg">
+                    
+                    <div className="flex justify-between text-xs text-[#4F6A7A] px-1">
+                      <span>1</span>
+                      <span>2</span>
+                      <span>3</span>
+                      <span>4</span>
+                      <span>5</span>
+                    </div>
+                    
+                    <div 
+                      className="p-4 rounded-lg text-center transition-all duration-300"
+                      style={{ 
+                        backgroundColor: `${stressColors[formData.stressLevel - 1]}15`,
+                        borderLeft: `4px solid ${stressColors[formData.stressLevel - 1]}`
+                      }}
+                    >
                       <p className="text-sm font-medium text-[#002B45]">
-                        Available for debt payment: ${(parseFloat(formData.monthlyIncome) - parseFloat(formData.monthlyExpenses)).toFixed(2)}/month
+                        {stressLabels[formData.stressLevel - 1]}
                       </p>
                     </div>
-                  )}
-                </>
-              )}
+                  </div>
+                </div>
 
-              {/* STEP 4: Savings & Credit */}
-              {step === 4 && (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="liquidSavings" className="text-[#002B45] font-medium">Liquid Savings</Label>
-                    <Input
-                      id="liquidSavings"
-                      type="number"
-                      placeholder="1000"
-                      value={formData.liquidSavings}
-                      onChange={(e) => setFormData({ ...formData, liquidSavings: e.target.value })}
-                      className="border-[#D4DFE4]"
-                    />
-                    <p className="text-sm text-[#4F6A7A]">How much do you have saved that could help with debt or emergencies</p>
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-[#002B45] font-medium">
+                      Any major life events coming up in the next 6–12 months? (Optional)
+                    </Label>
+                    <p className="text-sm text-[#4F6A7A] mt-1">
+                      Life events can affect your cash flow. Sharing helps us design a plan that adapts.
+                    </p>
                   </div>
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="creditScore" className="text-[#002B45] font-medium">Credit Score Range</Label>
-                    <Select
-                      value={formData.creditScoreRange}
-                      onValueChange={(value) => setFormData({ ...formData, creditScoreRange: value as CreditScoreRange })}
-                    >
-                      <SelectTrigger className="border-[#D4DFE4]">
-                        <SelectValue placeholder="Select your credit score range" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="300-579">300-579 (Poor)</SelectItem>
-                        <SelectItem value="580-669">580-669 (Fair)</SelectItem>
-                        <SelectItem value="670-739">670-739 (Good)</SelectItem>
-                        <SelectItem value="740-799">740-799 (Very Good)</SelectItem>
-                        <SelectItem value="800-850">800-850 (Excellent)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-sm text-[#4F6A7A]">Sharing this helps us suggest the best repaying strategies for your situation</p>
+                  <div className="flex flex-wrap gap-2">
+                    {lifeEventOptions.map((option) => (
+                      <Badge
+                        key={option.value}
+                        variant={formData.lifeEvents.includes(option.value) ? 'default' : 'outline'}
+                        className={`cursor-pointer px-4 py-2 text-sm transition-all ${
+                          formData.lifeEvents.includes(option.value)
+                            ? 'bg-[#009A8C] hover:bg-[#007F74] text-white border-[#009A8C]'
+                            : 'border-[#D4DFE4] text-[#3A4F61] hover:border-[#009A8C]'
+                        }`}
+                        onClick={() => toggleLifeEvent(option.value)}
+                      >
+                        {formData.lifeEvents.includes(option.value) && (
+                          <CheckCircle2 className="w-3 h-3 mr-1 inline" />
+                        )}
+                        {option.label}
+                      </Badge>
+                    ))}
                   </div>
-                </>
-              )}
+                </div>
+              </>
+            )}
 
-              {/* STEP 5: Summary */}
-              {step === 5 && (
-                <div className="py-4">
-                  <div className="mb-6">
-                    <div className="w-16 h-16 bg-[#E7F7F4] rounded-full flex items-center justify-center mx-auto mb-4">
-                      <CheckCircle2 className="w-8 h-8 text-[#009A8C]" />
+            {/* STEP 2: Age & Employment */}
+            {step === 2 && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="ageRange" className="text-[#002B45] font-medium">
+                    What's your age range?
+                  </Label>
+                  <Select
+                    value={formData.ageRange}
+                    onValueChange={(value) => setFormData({ ...formData, ageRange: value as AgeRange })}
+                  >
+                    <SelectTrigger className="border-[#D4DFE4]">
+                      <SelectValue placeholder="Select your age range" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="18-24">18-24</SelectItem>
+                      <SelectItem value="25-34">25-34</SelectItem>
+                      <SelectItem value="35-44">35-44</SelectItem>
+                      <SelectItem value="45-59">45-59</SelectItem>
+                      <SelectItem value="60+">60+</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-[#4F6A7A]">
+                    Different life stages come with different financial patterns — your answer guides smarter recommendations.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="employmentStatus" className="text-[#002B45] font-medium">
+                    What's your employment situation?
+                  </Label>
+                  <Select
+                    value={formData.employmentStatus}
+                    onValueChange={(value) => setFormData({ ...formData, employmentStatus: value as EmploymentStatus })}
+                  >
+                    <SelectTrigger className="border-[#D4DFE4]">
+                      <SelectValue placeholder="Select your employment status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="full-time">Full-time</SelectItem>
+                      <SelectItem value="part-time">Part-time</SelectItem>
+                      <SelectItem value="self-employed">Self-employed</SelectItem>
+                      <SelectItem value="unemployed">Unemployed</SelectItem>
+                      <SelectItem value="retired">Retired</SelectItem>
+                      <SelectItem value="student">Student</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-[#4F6A7A]">
+                    This helps us understand income stability and tailor your monthly plan.
+                  </p>
+                </div>
+              </>
+            )}
+
+            {/* STEP 3: Income & Expenses */}
+            {step === 3 && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="monthlyIncome" className="text-[#002B45] font-medium">
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="w-4 h-4" />
+                      Monthly Take-Home Income
                     </div>
-                    <h3 className="text-xl font-semibold text-[#002B45] mb-4 text-center">
-                      Here's what we know so far
-                    </h3>
+                  </Label>
+                  <Input
+                    id="monthlyIncome"
+                    type="number"
+                    placeholder="3500"
+                    value={formData.monthlyIncome}
+                    onChange={(e) => setFormData({ ...formData, monthlyIncome: e.target.value })}
+                    className="border-[#D4DFE4]"
+                  />
+                  <p className="text-sm text-[#4F6A7A]">How much money comes in each month for your household (after taxes and deductions)</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="monthlyExpenses" className="text-[#002B45] font-medium">Monthly Expenses</Label>
+                  <Input
+                    id="monthlyExpenses"
+                    type="number"
+                    placeholder="2500"
+                    value={formData.monthlyExpenses}
+                    onChange={(e) => setFormData({ ...formData, monthlyExpenses: e.target.value })}
+                    className="border-[#D4DFE4]"
+                  />
+                  <p className="text-sm text-[#4F6A7A]">Typical spending each month (rent, utilities, groceries, subscriptions, etc. - excluding debt payments)</p>
+                </div>
+                
+                {formData.monthlyIncome && formData.monthlyExpenses && (
+                  <div className={`p-4 rounded-lg ${
+                    calculateAvailableCashFlow() < 0 
+                      ? 'bg-red-50 border-l-4 border-red-500' 
+                      : 'bg-[#E7F7F4] border-l-4 border-[#009A8C]'
+                  }`}>
+                    <p className={`text-sm font-medium ${
+                      calculateAvailableCashFlow() < 0 ? 'text-red-800' : 'text-[#002B45]'
+                    }`}>
+                      Available for debt payment: ${calculateAvailableCashFlow().toFixed(2)}/month
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* STEP 4: Savings & Credit */}
+            {step === 4 && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="liquidSavings" className="text-[#002B45] font-medium">Liquid Savings</Label>
+                  <Input
+                    id="liquidSavings"
+                    type="number"
+                    placeholder="1000"
+                    value={formData.liquidSavings}
+                    onChange={(e) => setFormData({ ...formData, liquidSavings: e.target.value })}
+                    className="border-[#D4DFE4]"
+                  />
+                  <p className="text-sm text-[#4F6A7A]">How much do you have saved that could help with debt or emergencies</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="creditScore" className="text-[#002B45] font-medium">Credit Score Range</Label>
+                  <Select
+                    value={formData.creditScoreRange}
+                    onValueChange={(value) => setFormData({ ...formData, creditScoreRange: value as CreditScoreRange })}
+                  >
+                    <SelectTrigger className="border-[#D4DFE4]">
+                      <SelectValue placeholder="Select your credit score range" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="300-579">300-579 (Poor)</SelectItem>
+                      <SelectItem value="580-669">580-669 (Fair)</SelectItem>
+                      <SelectItem value="670-739">670-739 (Good)</SelectItem>
+                      <SelectItem value="740-799">740-799 (Very Good)</SelectItem>
+                      <SelectItem value="800-850">800-850 (Excellent)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-[#4F6A7A]">Sharing this helps us suggest the best repaying strategies for your situation</p>
+                </div>
+              </>
+            )}
+
+            {/* STEP 5: Summary */}
+            {step === 5 && (
+              <div className="py-4">
+                <div className="mb-6">
+                  <div className="w-16 h-16 bg-[#E7F7F4] rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle2 className="w-8 h-8 text-[#009A8C]" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-[#002B45] mb-4 text-center">
+                    Here's what we know so far
+                  </h3>
+                </div>
+                
+                <div className="space-y-3 mb-6">
+                  <div className="p-4 bg-[#F7F9FA] rounded-lg">
+                    <p className="text-sm text-[#4F6A7A] mb-1">Your goal</p>
+                    <p className="font-medium text-[#002B45] mb-2">Focus on {goalLabels[selectedGoal]}</p>
+                    <p className="text-sm text-[#3A4F61] italic">{getGoalInsight(selectedGoal)}</p>
                   </div>
                   
-                  <div className="space-y-3 mb-6">
-                    <div className="p-4 bg-[#F7F9FA] rounded-lg">
-                      <p className="text-sm text-[#4F6A7A] mb-1">Your goal</p>
-                      <p className="font-medium text-[#002B45]">Focus on {goalLabels[selectedGoal]}</p>
-                    </div>
-                    
-                    <div className="p-4 bg-[#F7F9FA] rounded-lg">
-                      <p className="text-sm text-[#4F6A7A] mb-1">How you're feeling</p>
-                      <p className="font-medium text-[#002B45]">{stressLabels[formData.stressLevel - 1]}</p>
-                    </div>
-                    
-                    {formData.lifeEvents.length > 0 && (
-                      <div className="p-4 bg-[#F7F9FA] rounded-lg">
-                        <p className="text-sm text-[#4F6A7A] mb-2">Life events to consider</p>
-                        <div className="flex flex-wrap gap-2">
+                  <div className="p-4 bg-[#F7F9FA] rounded-lg">
+                    <p className="text-sm text-[#4F6A7A] mb-1">How you're feeling</p>
+                    <p className="font-medium text-[#002B45] mb-2">{stressLabels[formData.stressLevel - 1]}</p>
+                    <p className="text-sm text-[#3A4F61] italic">{getStressInsight(formData.stressLevel)}</p>
+                  </div>
+                  
+                  <div className="p-4 bg-[#F7F9FA] rounded-lg">
+                    <p className="text-sm text-[#4F6A7A] mb-2">Life events to consider</p>
+                    {formData.lifeEvents.length > 0 ? (
+                      <>
+                        <div className="flex flex-wrap gap-2 mb-2">
                           {formData.lifeEvents.map((event) => (
                             <Badge key={event} variant="secondary" className="text-xs">
                               {lifeEventOptions.find(o => o.value === event)?.label}
                             </Badge>
                           ))}
                         </div>
-                      </div>
+                        <p className="text-sm text-[#3A4F61] italic">{getLifeEventsInsight(formData.lifeEvents)}</p>
+                      </>
+                    ) : (
+                      <p className="text-sm text-[#3A4F61] italic">{getLifeEventsInsight([])}</p>
                     )}
-                    
-                    <div className="p-4 bg-[#F7F9FA] rounded-lg">
-                      <p className="text-sm text-[#4F6A7A] mb-1">Your situation</p>
-                      <p className="font-medium text-[#002B45]">
-                        {formData.ageRange} • {formData.employmentStatus.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-                      </p>
-                    </div>
-                    
-                    <div className="p-4 bg-[#F7F9FA] rounded-lg">
-                      <p className="text-sm text-[#4F6A7A] mb-1">Monthly cash flow</p>
-                      <p className="font-medium text-[#002B45]">
-                        ${parseFloat(formData.monthlyIncome).toLocaleString()} income • ${parseFloat(formData.monthlyExpenses).toLocaleString()} expenses
-                      </p>
-                    </div>
                   </div>
                   
-                  <div className="bg-[#E7F7F4] rounded-lg p-6 text-center">
-                    <p className="text-[#002B45] mb-2">
-                      <strong>Next step:</strong> Add your debts so we can create your personalized payoff plan.
+                  <div className="p-4 bg-[#F7F9FA] rounded-lg">
+                    <p className="text-sm text-[#4F6A7A] mb-1">Your situation</p>
+                    <p className="font-medium text-[#002B45] mb-2">
+                      {formData.ageRange} • {formData.employmentStatus.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
                     </p>
-                    <p className="text-sm text-[#3A4F61]">
-                      You can add them one by one or upload a CSV file with all your debts at once.
+                    <p className="text-sm text-[#3A4F61] italic">{getSituationInsight(formData.ageRange, formData.employmentStatus)}</p>
+                  </div>
+                  
+                  <div className="p-4 bg-[#F7F9FA] rounded-lg">
+                    <p className="text-sm text-[#4F6A7A] mb-1">Monthly cash flow</p>
+                    <p className="font-medium text-[#002B45] mb-2">
+                      ${parseFloat(formData.monthlyIncome).toLocaleString()} income • ${parseFloat(formData.monthlyExpenses).toLocaleString()} expenses
+                    </p>
+                    <div className={`p-3 rounded-lg mb-2 ${
+                      calculateAvailableCashFlow() < 0 
+                        ? 'bg-red-50 border-l-4 border-red-500' 
+                        : 'bg-[#E7F7F4] border-l-4 border-[#009A8C]'
+                    }`}>
+                      <p className={`text-sm font-medium ${
+                        calculateAvailableCashFlow() < 0 ? 'text-red-800' : 'text-[#002B45]'
+                      }`}>
+                        Available for debt payment: ${calculateAvailableCashFlow().toFixed(2)}/month
+                      </p>
+                    </div>
+                    <p className="text-sm text-[#3A4F61] italic">{getCashFlowInsight(calculateAvailableCashFlow())}</p>
+                  </div>
+
+                  <div className="p-4 bg-[#F7F9FA] rounded-lg">
+                    <p className="text-sm text-[#4F6A7A] mb-1">Savings & credit</p>
+                    <p className="font-medium text-[#002B45]">
+                      ${parseFloat(formData.liquidSavings).toLocaleString()} in savings • {getCreditScoreLabel(formData.creditScoreRange)} credit score
                     </p>
                   </div>
                 </div>
-              )}
-            </TooltipProvider>
+                
+                <div className="bg-[#E7F7F4] rounded-lg p-6 text-center">
+                  <p className="text-[#002B45] mb-2">
+                    <strong>Next step:</strong> Add your debts so we can create your personalized payoff plan.
+                  </p>
+                  <p className="text-sm text-[#3A4F61]">
+                    We'll use this to show you exactly how to pay down your debts efficiently — while keeping your plan realistic and stress-free.
+                  </p>
+                </div>
+              </div>
+            )}
 
             <div className="flex justify-between pt-6">
               <Button 
