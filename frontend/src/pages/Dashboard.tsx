@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDebt } from '@/context/DebtContext';
 import { Button } from '@/components/ui/button';
-import { Compass, ArrowRight, DollarSign, Percent, TrendingDown, Calendar } from 'lucide-react';
+import { Compass, ArrowRight, DollarSign, Calendar, TrendingDown, PiggyBank, TrendingUp } from 'lucide-react';
 import MetricsCard from '@/components/MetricsCard';
 import DebtCompositionChart from '@/components/DebtCompositionChart';
 import DebtListTable from '@/components/DebtListTable';
 import DebtEntryForm from '@/components/DebtEntryForm';
 import { Debt } from '@/types/debt';
-import { calculateTotalDebt, calculateWeightedAPR, calculateTotalMinimumPayment, calculateDebtToIncome } from '@/utils/debtCalculations';
+import { calculateTotalDebt, calculateTotalMinimumPayment, calculateDebtToIncome } from '@/utils/debtCalculations';
 import { showSuccess } from '@/utils/toast';
 
 const Dashboard = () => {
@@ -23,9 +23,18 @@ const Dashboard = () => {
   }
 
   const totalDebt = calculateTotalDebt(debts);
-  const weightedAPR = calculateWeightedAPR(debts);
   const totalMinPayment = calculateTotalMinimumPayment(debts);
   const debtToIncome = financialContext ? calculateDebtToIncome(totalDebt, financialContext.monthlyIncome) : 0;
+  
+  // Calculate net cash flow
+  const netCashFlow = financialContext 
+    ? financialContext.monthlyIncome - financialContext.monthlyExpenses - totalMinPayment
+    : 0;
+  
+  // Calculate emergency savings ratio (months of expenses covered)
+  const emergencySavingsRatio = financialContext && financialContext.monthlyExpenses > 0
+    ? financialContext.liquidSavings / financialContext.monthlyExpenses
+    : 0;
 
   const handleAddDebt = (debt: Debt) => {
     addDebt(debt);
@@ -89,31 +98,44 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* Metrics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Metrics Grid - 2 columns on medium+, 3 on large+ */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <MetricsCard
             title="Total Debt"
             value={`$${totalDebt.toLocaleString()}`}
             subtitle={`Across ${debts.length} ${debts.length === 1 ? 'debt' : 'debts'}`}
             icon={DollarSign}
           />
+          
           <MetricsCard
-            title="Weighted APR"
-            value={`${weightedAPR.toFixed(2)}%`}
-            subtitle="Average interest rate"
-            icon={Percent}
-          />
-          <MetricsCard
-            title="Monthly Minimum"
+            title="Monthly Minimum Payments"
             value={`$${totalMinPayment.toLocaleString()}`}
-            subtitle="Required payment"
+            subtitle="Required each month"
             icon={Calendar}
           />
+          
           <MetricsCard
-            title="Debt-to-Income"
+            title="Net Cash Flow"
+            value={`${netCashFlow >= 0 ? '+' : ''}$${Math.abs(netCashFlow).toLocaleString()}`}
+            subtitle={netCashFlow >= 0 ? 'Additional payments possible' : 'Cannot make additional payments'}
+            icon={netCashFlow >= 0 ? TrendingUp : TrendingDown}
+            iconColor={netCashFlow >= 0 ? '#10B981' : '#EF4444'}
+          />
+          
+          <MetricsCard
+            title="Debt-to-Income Ratio"
             value={`${debtToIncome.toFixed(1)}%`}
             subtitle={debtToIncome > 43 ? 'High ratio' : 'Manageable ratio'}
             icon={TrendingDown}
+            iconColor={debtToIncome > 43 ? '#EF4444' : '#10B981'}
+          />
+          
+          <MetricsCard
+            title="Emergency Savings Ratio"
+            value={`${emergencySavingsRatio.toFixed(1)}x`}
+            subtitle={`${emergencySavingsRatio >= 3 ? 'Strong' : emergencySavingsRatio >= 1 ? 'Building' : 'Low'} emergency fund`}
+            icon={PiggyBank}
+            iconColor={emergencySavingsRatio >= 3 ? '#10B981' : emergencySavingsRatio >= 1 ? '#EAB308' : '#EF4444'}
           />
         </div>
 
@@ -138,11 +160,20 @@ const Dashboard = () => {
                 </p>
               </div>
               
-              {financialContext && (
-                <div className="p-4 bg-purple-50 rounded-lg">
+              {financialContext && netCashFlow > 0 && (
+                <div className="p-4 bg-green-50 rounded-lg">
                   <p className="text-sm font-medium text-[#002B45] mb-1">Available for Extra Payments</p>
-                  <p className="text-lg font-semibold text-purple-600">
-                    ${(financialContext.monthlyIncome - financialContext.monthlyExpenses - totalMinPayment).toLocaleString()}/month
+                  <p className="text-lg font-semibold text-green-600">
+                    ${netCashFlow.toLocaleString()}/month
+                  </p>
+                </div>
+              )}
+              
+              {financialContext && netCashFlow <= 0 && (
+                <div className="p-4 bg-orange-50 rounded-lg">
+                  <p className="text-sm font-medium text-[#002B45] mb-1">Budget Adjustment Needed</p>
+                  <p className="text-sm text-orange-700">
+                    Your current expenses exceed income after minimum payments. Consider reviewing your budget or exploring debt relief options.
                   </p>
                 </div>
               )}
