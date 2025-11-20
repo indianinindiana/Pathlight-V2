@@ -2,23 +2,28 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDebt } from '@/context/DebtContext';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Compass, ArrowLeft, Plus, Download, Lightbulb } from 'lucide-react';
+import { Compass, ArrowLeft, Download, Lightbulb, TrendingDown, Calendar, Shield, Target, Heart } from 'lucide-react';
 import ScenarioCard from '@/components/ScenarioCard';
 import ScenarioComparison from '@/components/ScenarioComparison';
+import ScenarioSlider from '@/components/ui/scenario-slider';
+import StrategyToggle from '@/components/ui/strategy-toggle';
+import ExplainabilitySection from '@/components/ui/explainability-section';
+import ConfidenceIndicator from '@/components/ui/confidence-indicator';
 import { calculatePayoffScenario, calculateTotalMinimumPayment } from '@/utils/debtCalculations';
-import { PayoffScenario } from '@/types/debt';
+import { PayoffScenario, PayoffStrategy } from '@/types/debt';
 import { showSuccess, showError } from '@/utils/toast';
+import { useRecommendations } from '@/hooks/usePersonalization';
 
 const Scenarios = () => {
   const navigate = useNavigate();
   const { debts, financialContext, scenarios, addScenario } = useDebt();
   const [generatedScenarios, setGeneratedScenarios] = useState<PayoffScenario[]>([]);
   const [selectedScenarios, setSelectedScenarios] = useState<string[]>([]);
-  const [customPayment, setCustomPayment] = useState('');
-  const [showCustomForm, setShowCustomForm] = useState(false);
+  const [selectedStrategy, setSelectedStrategy] = useState<PayoffStrategy>('avalanche');
+  const [customPayment, setCustomPayment] = useState(0);
+
+  const { recommendation, isLoading: recommendationLoading } = useRecommendations();
 
   useEffect(() => {
     if (debts.length === 0) {
@@ -26,9 +31,14 @@ const Scenarios = () => {
       return;
     }
 
-    // Generate default scenarios
     generateDefaultScenarios();
   }, [debts]);
+
+  useEffect(() => {
+    if (recommendation && !recommendationLoading) {
+      setSelectedStrategy(recommendation.recommendedStrategy);
+    }
+  }, [recommendation, recommendationLoading]);
 
   const generateDefaultScenarios = () => {
     const minPayment = calculateTotalMinimumPayment(debts);
@@ -55,24 +65,28 @@ const Scenarios = () => {
 
     setGeneratedScenarios(scenarios);
     setSelectedScenarios([scenarios[0].id, scenarios[1].id]);
+
+    // Set initial custom payment
+    setCustomPayment(minPayment);
+  };
+
+  const handleCustomPaymentChange = (value: number) => {
+    setCustomPayment(value);
   };
 
   const handleCreateCustomScenario = () => {
-    const payment = parseFloat(customPayment);
     const minPayment = calculateTotalMinimumPayment(debts);
 
-    if (!payment || payment < minPayment) {
+    if (customPayment < minPayment) {
       showError(`Monthly payment must be at least $${minPayment.toFixed(2)}`);
       return;
     }
 
-    const customScenario = calculatePayoffScenario(debts, 'custom', payment);
-    customScenario.name = `Custom Plan ($${payment}/month)`;
+    const customScenario = calculatePayoffScenario(debts, selectedStrategy, customPayment);
+    customScenario.name = `Custom ${selectedStrategy.charAt(0).toUpperCase() + selectedStrategy.slice(1)} ($${customPayment}/month)`;
 
     setGeneratedScenarios([...generatedScenarios, customScenario]);
     addScenario(customScenario);
-    setShowCustomForm(false);
-    setCustomPayment('');
     showSuccess('Custom scenario created successfully');
   };
 
@@ -89,9 +103,53 @@ const Scenarios = () => {
   );
 
   const handleExport = () => {
-    // TODO: Implement export functionality
     showSuccess('Export functionality coming soon!');
   };
+
+  const minPayment = calculateTotalMinimumPayment(debts);
+  const maxPayment = financialContext 
+    ? financialContext.monthlyIncome - financialContext.monthlyExpenses
+    : minPayment * 3;
+
+  // Calculate impact for slider
+  const baseScenario = generatedScenarios[0];
+  const customScenarioPreview = baseScenario ? calculatePayoffScenario(debts, selectedStrategy, customPayment) : null;
+  const monthsSaved = baseScenario && customScenarioPreview 
+    ? baseScenario.totalMonths - customScenarioPreview.totalMonths 
+    : 0;
+  const interestSaved = baseScenario && customScenarioPreview
+    ? baseScenario.totalInterest - customScenarioPreview.totalInterest
+    : 0;
+
+  const strategyOptions = [
+    {
+      value: 'snowball',
+      label: 'Snowball',
+      metrics: {
+        months: 48,
+        interest: 8500,
+        description: 'Best for motivation'
+      }
+    },
+    {
+      value: 'avalanche',
+      label: 'Avalanche',
+      metrics: {
+        months: 44,
+        interest: 7200,
+        description: 'Saves most money'
+      }
+    },
+    {
+      value: 'custom',
+      label: 'Hybrid',
+      metrics: {
+        months: 46,
+        interest: 7800,
+        description: 'Balanced approach'
+      }
+    }
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50/30 to-teal-50/20">
@@ -128,7 +186,48 @@ const Scenarios = () => {
           </p>
         </div>
 
-        {/* What-If CTA */}
+        {/* Recommendation Banner */}
+        {recommendation && !recommendationLoading && (
+          <Card className="border-[1.5px] border-[#009A8C] bg-[#E7F7F4] mb-8">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-4 flex-1">
+                  <div className="p-3 bg-[#009A8C]/10 rounded-lg">
+                    <Lightbulb className="w-6 h-6 text-[#009A8C]" strokeWidth={2} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="font-semibold text-[#002B45] text-lg">
+                        Recommended Strategy: {recommendation.recommendedStrategy.charAt(0).toUpperCase() + recommendation.recommendedStrategy.slice(1)}
+                      </h3>
+                      <ConfidenceIndicator
+                        level={recommendation.confidence}
+                        factors={recommendation.factors}
+                        explanation={recommendation.explanation}
+                      />
+                    </div>
+                    <p className="text-sm text-[#3A4F61] mb-3">
+                      {recommendation.explanation}
+                    </p>
+                    {recommendation.alternatives.length > 0 && (
+                      <div className="text-xs text-[#4F6A7A]">
+                        <span className="font-medium">Also consider:</span>{' '}
+                        {recommendation.alternatives.map((alt, i) => (
+                          <span key={i}>
+                            {alt.strategy} ({alt.reason})
+                            {i < recommendation.alternatives.length - 1 ? ', ' : ''}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* What-If CTA Card */}
         <Card className="border-[1.5px] border-[#009A8C] bg-[#E7F7F4] mb-8">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -155,65 +254,64 @@ const Scenarios = () => {
           </CardContent>
         </Card>
 
+        {/* Interactive Scenario Builder */}
+        <Card className="border-[1.5px] border-[#D4DFE4] mb-8">
+          <CardHeader>
+            <CardTitle className="text-[#002B45]">Build Your Custom Plan</CardTitle>
+            <CardDescription className="text-[#3A4F61]">
+              Adjust your monthly payment and strategy to see how it affects your payoff timeline
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <StrategyToggle
+              options={strategyOptions}
+              selected={selectedStrategy}
+              onChange={(value) => setSelectedStrategy(value as PayoffStrategy)}
+              showComparison={true}
+            />
+
+            <ScenarioSlider
+              label="Monthly Payment Amount"
+              min={minPayment}
+              max={maxPayment}
+              step={25}
+              value={customPayment}
+              onChange={handleCustomPaymentChange}
+              unit="$"
+              formatValue={(value) => `$${value.toLocaleString()}`}
+              impact={[
+                {
+                  label: monthsSaved >= 0 ? 'Months Faster' : 'Months Slower',
+                  value: `${Math.abs(monthsSaved)} months`
+                },
+                {
+                  label: interestSaved >= 0 ? 'Interest Saved' : 'Extra Interest',
+                  value: `$${Math.abs(interestSaved).toLocaleString()}`
+                }
+              ]}
+            />
+
+            <Button
+              onClick={handleCreateCustomScenario}
+              className="w-full bg-[#009A8C] hover:bg-[#007F74] text-white rounded-xl"
+            >
+              Create Custom Scenario
+            </Button>
+          </CardContent>
+        </Card>
+
         {/* Scenario Cards */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xl font-semibold text-[#002B45]">Available Strategies</h3>
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                onClick={() => setShowCustomForm(!showCustomForm)}
-                className="border-[#D4DFE4] text-[#002B45] rounded-xl"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Create Custom Plan
-              </Button>
-              <Button
-                onClick={handleExport}
-                className="bg-[#009A8C] hover:bg-[#007F74] text-white rounded-xl"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Export
-              </Button>
-            </div>
+            <Button
+              onClick={handleExport}
+              className="bg-[#009A8C] hover:bg-[#007F74] text-white rounded-xl"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Export
+            </Button>
           </div>
-
-          {showCustomForm && (
-            <Card className="border-[1.5px] border-[#D4DFE4] mb-6">
-              <CardHeader>
-                <CardTitle className="text-[#002B45]">Create Custom Scenario</CardTitle>
-                <CardDescription className="text-[#3A4F61]">
-                  Enter your desired monthly payment amount
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex gap-4 items-end">
-                  <div className="flex-1 space-y-2">
-                    <Label htmlFor="customPayment" className="text-[#002B45] font-medium">
-                      Monthly Payment Amount
-                    </Label>
-                    <Input
-                      id="customPayment"
-                      type="number"
-                      placeholder="Enter amount"
-                      value={customPayment}
-                      onChange={(e) => setCustomPayment(e.target.value)}
-                      className="border-[#D4DFE4]"
-                    />
-                    <p className="text-sm text-[#4F6A7A]">
-                      Minimum: ${calculateTotalMinimumPayment(debts).toFixed(2)}
-                    </p>
-                  </div>
-                  <Button
-                    onClick={handleCreateCustomScenario}
-                    className="bg-[#009A8C] hover:bg-[#007F74] text-white rounded-xl"
-                  >
-                    Create Scenario
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {generatedScenarios.map((scenario) => (
@@ -249,6 +347,41 @@ const Scenarios = () => {
               </p>
             </CardContent>
           </Card>
+        )}
+
+        {/* Explainability Section */}
+        {recommendation && (
+          <ExplainabilitySection
+            title="Why we recommend this strategy"
+            defaultOpen={false}
+            explanations={[
+              {
+                icon: TrendingDown,
+                title: 'Saves the most interest',
+                description: `${recommendation.recommendedStrategy.charAt(0).toUpperCase() + recommendation.recommendedStrategy.slice(1)} method targets your highest-interest debts first, potentially saving thousands in interest charges`
+              },
+              {
+                icon: Calendar,
+                title: 'Realistic timeline',
+                description: `Based on your available cash flow, this strategy provides a sustainable path to becoming debt-free`
+              },
+              {
+                icon: Shield,
+                title: 'Maintains financial stability',
+                description: 'Keeps your emergency savings intact while making steady progress on debt reduction'
+              },
+              {
+                icon: Target,
+                title: 'Matches your goals',
+                description: `You said you want to ${financialContext?.primaryGoal.replace('-', ' ')} - this strategy aligns with that objective`
+              },
+              {
+                icon: Heart,
+                title: 'Considers your stress level',
+                description: `With your ${financialContext?.stressLevel === 5 ? 'high' : financialContext?.stressLevel === 4 ? 'elevated' : 'moderate'} stress level, this balanced approach provides steady progress without overwhelming you`
+              }
+            ]}
+          />
         )}
 
         {/* Key Insights */}

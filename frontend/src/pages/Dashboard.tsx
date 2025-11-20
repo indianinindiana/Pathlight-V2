@@ -7,15 +7,24 @@ import MetricsCard from '@/components/MetricsCard';
 import DebtCompositionChart from '@/components/DebtCompositionChart';
 import DebtListTable from '@/components/DebtListTable';
 import DebtEntryForm from '@/components/DebtEntryForm';
+import AlertBanner from '@/components/ui/alert-banner';
+import NextActionCard from '@/components/ui/next-action-card';
+import ConfidenceIndicator from '@/components/ui/confidence-indicator';
 import { Debt } from '@/types/debt';
 import { calculateTotalDebt, calculateTotalMinimumPayment, calculateDebtToIncome } from '@/utils/debtCalculations';
 import { showSuccess } from '@/utils/toast';
+import { usePersonalization, useNextBestActions, useConfidenceScore } from '@/hooks/usePersonalization';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { debts, financialContext, addDebt, updateDebt, deleteDebt } = useDebt();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingDebt, setEditingDebt] = useState<Debt | null>(null);
+
+  // Use personalization hooks
+  const { alerts } = usePersonalization();
+  const { actions, isLoading: actionsLoading } = useNextBestActions();
+  const { confidence } = useConfidenceScore();
 
   if (debts.length === 0 && !showAddForm) {
     navigate('/debt-entry');
@@ -26,12 +35,10 @@ const Dashboard = () => {
   const totalMinPayment = calculateTotalMinimumPayment(debts);
   const debtToIncome = financialContext ? calculateDebtToIncome(totalDebt, financialContext.monthlyIncome) : 0;
   
-  // Calculate net cash flow
   const netCashFlow = financialContext 
     ? financialContext.monthlyIncome - financialContext.monthlyExpenses - totalMinPayment
     : 0;
   
-  // Calculate emergency savings ratio (months of expenses covered)
   const emergencySavingsRatio = financialContext && financialContext.monthlyExpenses > 0
     ? financialContext.liquidSavings / financialContext.monthlyExpenses
     : 0;
@@ -56,6 +63,25 @@ const Dashboard = () => {
     updateDebt(debtId, { customOrder: priority });
   };
 
+  const handleActionClick = (action: string) => {
+    switch (action) {
+      case 'emergency-savings':
+        // Navigate to savings plan
+        break;
+      case 'high-interest-focus':
+        navigate('/scenarios');
+        break;
+      case 'budget-review':
+        // Navigate to budget review
+        break;
+      case 'consolidation':
+        navigate('/what-if');
+        break;
+      default:
+        break;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50/30 to-teal-50/20">
       {/* Header */}
@@ -68,6 +94,13 @@ const Dashboard = () => {
                 Debt PathFinder
               </h1>
             </div>
+            {confidence && (
+              <ConfidenceIndicator
+                level={confidence.level}
+                factors={confidence.factors}
+                explanation={confidence.suggestions[0]}
+              />
+            )}
           </div>
         </div>
       </header>
@@ -82,6 +115,45 @@ const Dashboard = () => {
             Here's an overview of your current debt situation
           </p>
         </div>
+
+        {/* Personalized Alerts */}
+        {alerts.length > 0 && (
+          <div className="space-y-4 mb-8">
+            {alerts.map((alert, index) => (
+              <AlertBanner
+                key={index}
+                type={alert.type}
+                condition={alert.condition}
+              >
+                {alert.message}
+              </AlertBanner>
+            ))}
+          </div>
+        )}
+
+        {/* Next Best Actions */}
+        {actions.length > 0 && !actionsLoading && (
+          <div className="mb-8">
+            <h3 className="text-xl font-semibold text-[#002B45] mb-4">
+              Your Next Best Actions
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {actions.map((action) => (
+                <NextActionCard
+                  key={action.priority}
+                  priority={action.priority}
+                  title={action.title}
+                  description={action.description}
+                  impact={action.impact}
+                  cta={action.cta}
+                  onAction={() => handleActionClick(action.action)}
+                  progress={action.progress}
+                  confidence={action.confidence}
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Add/Edit Form */}
         {showAddForm && (
@@ -98,7 +170,7 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* Metrics Grid - 2 columns on medium+, 3 on large+ */}
+        {/* Metrics Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <MetricsCard
             title="Total Debt"
