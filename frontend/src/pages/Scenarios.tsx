@@ -2,26 +2,37 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDebt } from '@/context/DebtContext';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Compass, ArrowLeft, Download, Lightbulb, TrendingDown, Calendar, Shield, Target, Heart } from 'lucide-react';
+import { Compass, ArrowLeft, Download, Lightbulb, TrendingDown, Calendar, Shield, Target, Heart, Trash2, Edit2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import ScenarioCard from '@/components/ScenarioCard';
 import ScenarioComparison from '@/components/ScenarioComparison';
 import ScenarioSlider from '@/components/ui/scenario-slider';
 import StrategyToggle from '@/components/ui/strategy-toggle';
 import ExplainabilitySection from '@/components/ui/explainability-section';
 import ConfidenceIndicator from '@/components/ui/confidence-indicator';
+import AlertBanner from '@/components/ui/alert-banner';
 import { calculatePayoffScenario, calculateTotalMinimumPayment } from '@/utils/debtCalculations';
 import { PayoffScenario, PayoffStrategy } from '@/types/debt';
 import { showSuccess, showError } from '@/utils/toast';
 import { useRecommendations } from '@/hooks/usePersonalization';
 
+const MAX_CUSTOM_SCENARIOS = 5;
+const MAX_COMPARISON_SCENARIOS = 3;
+
 const Scenarios = () => {
   const navigate = useNavigate();
   const { debts, financialContext, scenarios, addScenario } = useDebt();
-  const [generatedScenarios, setGeneratedScenarios] = useState<PayoffScenario[]>([]);
+  const [defaultScenarios, setDefaultScenarios] = useState<PayoffScenario[]>([]);
+  const [customScenarios, setCustomScenarios] = useState<PayoffScenario[]>([]);
   const [selectedScenarios, setSelectedScenarios] = useState<string[]>([]);
   const [selectedStrategy, setSelectedStrategy] = useState<PayoffStrategy>('avalanche');
   const [customPayment, setCustomPayment] = useState(0);
+  const [showNameDialog, setShowNameDialog] = useState(false);
+  const [scenarioName, setScenarioName] = useState('');
+  const [editingScenario, setEditingScenario] = useState<PayoffScenario | null>(null);
 
   const { recommendation, isLoading: recommendationLoading } = useRecommendations();
 
@@ -50,11 +61,13 @@ const Scenarios = () => {
 
     // Minimum payment scenario (Snowball)
     const minScenario = calculatePayoffScenario(debts, 'snowball', minPayment);
+    minScenario.name = 'Minimum Payments (Snowball)';
     scenarios.push(minScenario);
 
     // Aggressive payment scenario (Avalanche)
     const aggressivePayment = Math.min(availableAmount, minPayment * 2);
     const aggressiveScenario = calculatePayoffScenario(debts, 'avalanche', aggressivePayment);
+    aggressiveScenario.name = 'Aggressive Payoff (Avalanche)';
     scenarios.push(aggressiveScenario);
 
     // Moderate payment scenario
@@ -63,7 +76,7 @@ const Scenarios = () => {
     moderateScenario.name = 'Moderate Strategy';
     scenarios.push(moderateScenario);
 
-    setGeneratedScenarios(scenarios);
+    setDefaultScenarios(scenarios);
     setSelectedScenarios([scenarios[0].id, scenarios[1].id]);
 
     // Set initial custom payment
@@ -82,23 +95,74 @@ const Scenarios = () => {
       return;
     }
 
-    const customScenario = calculatePayoffScenario(debts, selectedStrategy, customPayment);
-    customScenario.name = `Custom ${selectedStrategy.charAt(0).toUpperCase() + selectedStrategy.slice(1)} ($${customPayment}/month)`;
+    if (customScenarios.length >= MAX_CUSTOM_SCENARIOS) {
+      showError(`You can only create up to ${MAX_CUSTOM_SCENARIOS} custom scenarios. Delete one to create a new one.`);
+      return;
+    }
 
-    setGeneratedScenarios([...generatedScenarios, customScenario]);
-    addScenario(customScenario);
-    showSuccess('Custom scenario created successfully');
+    // Generate default name
+    const defaultName = `Custom ${selectedStrategy.charAt(0).toUpperCase() + selectedStrategy.slice(1)} #${customScenarios.length + 1}`;
+    setScenarioName(defaultName);
+    setShowNameDialog(true);
+  };
+
+  const handleSaveCustomScenario = () => {
+    if (!scenarioName.trim()) {
+      showError('Please enter a name for your scenario');
+      return;
+    }
+
+    const customScenario = calculatePayoffScenario(debts, selectedStrategy, customPayment);
+    customScenario.name = scenarioName.trim();
+
+    if (editingScenario) {
+      // Update existing scenario
+      setCustomScenarios(customScenarios.map(s => 
+        s.id === editingScenario.id ? customScenario : s
+      ));
+      showSuccess('Scenario updated successfully');
+    } else {
+      // Add new scenario
+      setCustomScenarios([...customScenarios, customScenario]);
+      addScenario(customScenario);
+      showSuccess('Custom scenario created successfully');
+    }
+
+    setShowNameDialog(false);
+    setScenarioName('');
+    setEditingScenario(null);
+  };
+
+  const handleEditScenario = (scenario: PayoffScenario) => {
+    setEditingScenario(scenario);
+    setScenarioName(scenario.name);
+    setCustomPayment(scenario.monthlyPayment);
+    setSelectedStrategy(scenario.strategy);
+    setShowNameDialog(true);
+  };
+
+  const handleDeleteScenario = (scenarioId: string) => {
+    if (confirm('Are you sure you want to delete this custom scenario?')) {
+      setCustomScenarios(customScenarios.filter(s => s.id !== scenarioId));
+      setSelectedScenarios(selectedScenarios.filter(id => id !== scenarioId));
+      showSuccess('Scenario deleted successfully');
+    }
   };
 
   const toggleScenarioSelection = (id: string) => {
     if (selectedScenarios.includes(id)) {
       setSelectedScenarios(selectedScenarios.filter((s) => s !== id));
     } else {
+      if (selectedScenarios.length >= MAX_COMPARISON_SCENARIOS) {
+        showError(`You can only compare up to ${MAX_COMPARISON_SCENARIOS} scenarios at a time. Deselect one first.`);
+        return;
+      }
       setSelectedScenarios([...selectedScenarios, id]);
     }
   };
 
-  const selectedScenarioObjects = generatedScenarios.filter((s) =>
+  const allScenarios = [...defaultScenarios, ...customScenarios];
+  const selectedScenarioObjects = allScenarios.filter((s) =>
     selectedScenarios.includes(s.id)
   );
 
@@ -112,7 +176,7 @@ const Scenarios = () => {
     : minPayment * 3;
 
   // Calculate impact for slider
-  const baseScenario = generatedScenarios[0];
+  const baseScenario = defaultScenarios[0];
   const customScenarioPreview = baseScenario ? calculatePayoffScenario(debts, selectedStrategy, customPayment) : null;
   const monthsSaved = baseScenario && customScenarioPreview 
     ? baseScenario.totalMonths - customScenarioPreview.totalMonths 
@@ -227,10 +291,17 @@ const Scenarios = () => {
           </Card>
         )}
 
+        {/* Comparison Limit Alert */}
+        {selectedScenarios.length === MAX_COMPARISON_SCENARIOS && (
+          <AlertBanner type="info" className="mb-8">
+            You've selected the maximum of {MAX_COMPARISON_SCENARIOS} scenarios for comparison. Deselect one to choose a different scenario.
+          </AlertBanner>
+        )}
+
         {/* What-If CTA Card */}
         <Card className="border-[1.5px] border-[#009A8C] bg-[#E7F7F4] mb-8">
           <CardContent className="p-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div className="flex items-start gap-4">
                 <div className="p-3 bg-[#009A8C]/10 rounded-lg">
                   <Lightbulb className="w-6 h-6 text-[#009A8C]" strokeWidth={2} />
@@ -257,10 +328,17 @@ const Scenarios = () => {
         {/* Interactive Scenario Builder */}
         <Card className="border-[1.5px] border-[#D4DFE4] mb-8">
           <CardHeader>
-            <CardTitle className="text-[#002B45]">Build Your Custom Plan</CardTitle>
-            <CardDescription className="text-[#3A4F61]">
-              Adjust your monthly payment and strategy to see how it affects your payoff timeline
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-[#002B45]">Build Your Custom Plan</CardTitle>
+                <CardDescription className="text-[#3A4F61]">
+                  Adjust your monthly payment and strategy to see how it affects your payoff timeline
+                </CardDescription>
+              </div>
+              <div className="text-sm text-[#4F6A7A]">
+                {customScenarios.length}/{MAX_CUSTOM_SCENARIOS} custom scenarios
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
             <StrategyToggle
@@ -293,28 +371,25 @@ const Scenarios = () => {
 
             <Button
               onClick={handleCreateCustomScenario}
-              className="w-full bg-[#009A8C] hover:bg-[#007F74] text-white rounded-xl"
+              disabled={customScenarios.length >= MAX_CUSTOM_SCENARIOS}
+              className="w-full bg-[#009A8C] hover:bg-[#007F74] text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Create Custom Scenario
+              {customScenarios.length >= MAX_CUSTOM_SCENARIOS 
+                ? `Maximum ${MAX_CUSTOM_SCENARIOS} Custom Scenarios Reached`
+                : 'Create Custom Scenario'
+              }
             </Button>
           </CardContent>
         </Card>
 
-        {/* Scenario Cards */}
+        {/* Default Scenarios */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-semibold text-[#002B45]">Available Strategies</h3>
-            <Button
-              onClick={handleExport}
-              className="bg-[#009A8C] hover:bg-[#007F74] text-white rounded-xl"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Export
-            </Button>
+            <h3 className="text-xl font-semibold text-[#002B45]">Default Strategies</h3>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {generatedScenarios.map((scenario) => (
+            {defaultScenarios.map((scenario) => (
               <ScenarioCard
                 key={scenario.id}
                 scenario={scenario}
@@ -323,24 +398,80 @@ const Scenarios = () => {
               />
             ))}
           </div>
-
-          <p className="text-sm text-[#4F6A7A] mt-4">
-            Click on scenarios to select them for comparison (selected: {selectedScenarios.length})
-          </p>
         </div>
+
+        {/* Custom Scenarios */}
+        {customScenarios.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-[#002B45]">
+                Your Custom Strategies ({customScenarios.length}/{MAX_CUSTOM_SCENARIOS})
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {customScenarios.map((scenario) => (
+                <div key={scenario.id} className="relative">
+                  <ScenarioCard
+                    scenario={scenario}
+                    isSelected={selectedScenarios.includes(scenario.id)}
+                    onClick={() => toggleScenarioSelection(scenario.id)}
+                  />
+                  <div className="absolute top-2 right-2 flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditScenario(scenario);
+                      }}
+                      className="bg-white/90 backdrop-blur-sm border-[#D4DFE4] hover:bg-white"
+                    >
+                      <Edit2 className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteScenario(scenario.id);
+                      }}
+                      className="bg-white/90 backdrop-blur-sm border-red-200 text-red-600 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <p className="text-sm text-[#4F6A7A] mb-8">
+          Click on scenarios to select them for comparison (selected: {selectedScenarios.length}/{MAX_COMPARISON_SCENARIOS})
+        </p>
 
         {/* Comparison Section */}
         {selectedScenarioObjects.length >= 2 && (
           <div className="mb-8">
-            <h3 className="text-xl font-semibold text-[#002B45] mb-4">
-              Scenario Comparison
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-[#002B45]">
+                Scenario Comparison
+              </h3>
+              <Button
+                onClick={handleExport}
+                className="bg-[#009A8C] hover:bg-[#007F74] text-white rounded-xl"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Export Comparison
+              </Button>
+            </div>
             <ScenarioComparison scenarios={selectedScenarioObjects} />
           </div>
         )}
 
         {selectedScenarioObjects.length < 2 && (
-          <Card className="border-[1.5px] border-[#D4DFE4]">
+          <Card className="border-[1.5px] border-[#D4DFE4] mb-8">
             <CardContent className="py-12 text-center">
               <p className="text-[#3A4F61] text-lg">
                 Select at least 2 scenarios to see a detailed comparison
@@ -416,6 +547,68 @@ const Scenarios = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Name Scenario Dialog */}
+      <Dialog open={showNameDialog} onOpenChange={setShowNameDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {editingScenario ? 'Edit Scenario Name' : 'Name Your Custom Scenario'}
+            </DialogTitle>
+            <DialogDescription>
+              Give your scenario a memorable name to help you identify it later
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="scenario-name">Scenario Name</Label>
+              <Input
+                id="scenario-name"
+                value={scenarioName}
+                onChange={(e) => setScenarioName(e.target.value)}
+                placeholder="e.g., Aggressive Payoff Plan"
+                maxLength={50}
+                className="border-[#D4DFE4]"
+              />
+              <p className="text-xs text-[#4F6A7A]">
+                {scenarioName.length}/50 characters
+              </p>
+            </div>
+            <div className="p-4 bg-[#F7F9FA] rounded-lg border border-[#D4DFE4]">
+              <h4 className="text-sm font-semibold text-[#002B45] mb-2">Scenario Details</h4>
+              <div className="space-y-1 text-sm text-[#3A4F61]">
+                <p><span className="font-medium">Strategy:</span> {selectedStrategy.charAt(0).toUpperCase() + selectedStrategy.slice(1)}</p>
+                <p><span className="font-medium">Monthly Payment:</span> ${customPayment.toLocaleString()}</p>
+                {customScenarioPreview && (
+                  <>
+                    <p><span className="font-medium">Payoff Time:</span> {customScenarioPreview.totalMonths} months</p>
+                    <p><span className="font-medium">Total Interest:</span> ${customScenarioPreview.totalInterest.toLocaleString()}</p>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowNameDialog(false);
+                setScenarioName('');
+                setEditingScenario(null);
+              }}
+              className="border-[#D4DFE4] text-[#3A4F61]"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveCustomScenario}
+              className="bg-[#009A8C] hover:bg-[#007F74] text-white"
+            >
+              {editingScenario ? 'Update Scenario' : 'Create Scenario'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
