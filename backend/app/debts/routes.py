@@ -1,21 +1,35 @@
 from fastapi import APIRouter, HTTPException, status, Query
-from app.shared.models import Debt
+from app.shared.simple_debt_models import SimpleDebt, SimpleDebtUpdate
 from app.shared.database import get_debts_collection
 from bson import ObjectId
-from datetime import datetime
+from datetime import datetime, timezone, date
 from typing import Optional
 
 router = APIRouter(prefix="/api/v1/debts", tags=["debts"])
 
 @router.post("", status_code=status.HTTP_201_CREATED)
-async def create_debt(debt: Debt):
-    """Create a new debt."""
+async def create_debt(debt: SimpleDebt):
+    """
+    Create a new debt with simplified structure.
+    """
     collection = get_debts_collection()
     
     # Convert debt to dict and remove id if present
-    debt_dict = debt.model_dump(by_alias=True, exclude={"id"})
-    debt_dict["created_at"] = datetime.utcnow()
-    debt_dict["updated_at"] = datetime.utcnow()
+    debt_dict = debt.model_dump(by_alias=True, exclude={"id"}, exclude_none=True)
+    
+    # Convert date to datetime for MongoDB compatibility
+    if "next_payment_date" in debt_dict and isinstance(debt_dict["next_payment_date"], date):
+        debt_dict["next_payment_date"] = datetime.combine(
+            debt_dict["next_payment_date"],
+            datetime.min.time()
+        ).replace(tzinfo=timezone.utc)
+    
+    # Convert enum to string
+    if "type" in debt_dict:
+        debt_dict["type"] = debt_dict["type"].value if hasattr(debt_dict["type"], "value") else str(debt_dict["type"])
+    
+    debt_dict["created_at"] = datetime.now(timezone.utc)
+    debt_dict["updated_at"] = datetime.now(timezone.utc)
     
     # Insert into database
     result = await collection.insert_one(debt_dict)
@@ -23,8 +37,9 @@ async def create_debt(debt: Debt):
     # Retrieve the created debt
     created_debt = await collection.find_one({"_id": result.inserted_id})
     
-    # Convert ObjectId to string for response
+    # Convert ObjectId to string for response and add 'id' field
     created_debt["_id"] = str(created_debt["_id"])
+    created_debt["id"] = created_debt["_id"]
     
     return created_debt
 
@@ -42,9 +57,10 @@ async def get_debts(profile_id: Optional[str] = Query(None, description="Filter 
     cursor = collection.find(query)
     debts = await cursor.to_list(length=None)
     
-    # Convert ObjectId to string for each debt
+    # Convert ObjectId to string for each debt and add 'id' field
     for debt in debts:
         debt["_id"] = str(debt["_id"])
+        debt["id"] = debt["_id"]
     
     return debts
 
@@ -71,14 +87,78 @@ async def get_debt(debt_id: str):
             detail="Debt not found"
         )
     
-    # Convert ObjectId to string
+    # Convert ObjectId to string and add 'id' field
     debt["_id"] = str(debt["_id"])
+    debt["id"] = debt["_id"]
     
     return debt
 
+@router.patch("/{debt_id}")
+async def update_debt_partial(debt_id: str, debt_update: SimpleDebtUpdate):
+    """
+    Partially update a debt.
+    Only provided fields will be updated, others remain unchanged.
+    """
+    collection = get_debts_collection()
+    
+    # Validate ObjectId
+    try:
+        object_id = ObjectId(debt_id)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid debt ID format"
+        )
+    
+    # Check if debt exists
+    existing_debt = await collection.find_one({"_id": object_id})
+    if not existing_debt:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Debt not found"
+        )
+    
+    # Prepare update data - only include fields that were provided
+    update_dict = debt_update.model_dump(exclude_none=True)
+    
+    if not update_dict:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No fields provided for update"
+        )
+    
+    # Convert date to datetime for MongoDB compatibility
+    if "next_payment_date" in update_dict and isinstance(update_dict["next_payment_date"], date):
+        update_dict["next_payment_date"] = datetime.combine(
+            update_dict["next_payment_date"],
+            datetime.min.time()
+        ).replace(tzinfo=timezone.utc)
+    
+    # Convert enum to string
+    if "type" in update_dict:
+        update_dict["type"] = update_dict["type"].value if hasattr(update_dict["type"], "value") else str(update_dict["type"])
+    
+    update_dict["updated_at"] = datetime.now(timezone.utc)
+    
+    # Update debt
+    await collection.update_one(
+        {"_id": object_id},
+        {"$set": update_dict}
+    )
+    
+    # Retrieve updated debt
+    updated_debt = await collection.find_one({"_id": object_id})
+    updated_debt["_id"] = str(updated_debt["_id"])
+    updated_debt["id"] = updated_debt["_id"]
+    
+    return updated_debt
+
 @router.put("/{debt_id}")
-async def update_debt(debt_id: str, debt: Debt):
-    """Update a debt."""
+async def update_debt_full(debt_id: str, debt: SimpleDebt):
+    """
+    Fully replace a debt (legacy endpoint).
+    Use PATCH for partial updates instead.
+    """
     collection = get_debts_collection()
     
     # Validate ObjectId
@@ -99,8 +179,20 @@ async def update_debt(debt_id: str, debt: Debt):
         )
     
     # Prepare update data
-    update_dict = debt.model_dump(by_alias=True, exclude={"id", "created_at"})
-    update_dict["updated_at"] = datetime.utcnow()
+    update_dict = debt.model_dump(by_alias=True, exclude={"id", "created_at"}, exclude_none=True)
+    
+    # Convert date to datetime for MongoDB compatibility
+    if "next_payment_date" in update_dict and isinstance(update_dict["next_payment_date"], date):
+        update_dict["next_payment_date"] = datetime.combine(
+            update_dict["next_payment_date"],
+            datetime.min.time()
+        ).replace(tzinfo=timezone.utc)
+    
+    # Convert enum to string
+    if "type" in update_dict:
+        update_dict["type"] = update_dict["type"].value if hasattr(update_dict["type"], "value") else str(update_dict["type"])
+    
+    update_dict["updated_at"] = datetime.now(timezone.utc)
     
     # Update debt
     await collection.update_one(
@@ -111,6 +203,7 @@ async def update_debt(debt_id: str, debt: Debt):
     # Retrieve updated debt
     updated_debt = await collection.find_one({"_id": object_id})
     updated_debt["_id"] = str(updated_debt["_id"])
+    updated_debt["id"] = updated_debt["_id"]
     
     return updated_debt
 

@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDebt } from '@/context/DebtContext';
+import { getUserId, getProfileId, setProfileId } from '@/services/sessionManager';
+import { createProfile, updateProfile, getProfileByUserId } from '@/services/profileApi';
+import type { ProfileUpdateRequest } from '@/services/profileApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,9 +18,12 @@ import { ArrowRight, ArrowLeft, DollarSign, Compass, CheckCircle2 } from 'lucide
 const Onboarding = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { setFinancialContext, setOnboardingComplete } = useDebt();
+  const { setFinancialContext, setOnboardingComplete, setProfileId: setContextProfileId } = useDebt();
   const [step, setStep] = useState(1);
   const totalSteps = 5;
+  const [profileId, setProfileIdState] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const selectedGoal = (location.state as any)?.selectedGoal as PayoffGoal || 'pay-faster';
 
@@ -28,16 +34,54 @@ const Onboarding = () => {
     'avoid-default': 'avoiding falling behind'
   };
 
-  const [formData, setFormData] = useState({
-    stressLevel: 3 as StressLevel,
-    lifeEvents: [] as LifeEvent[],
-    ageRange: '' as AgeRange,
-    employmentStatus: '' as EmploymentStatus,
+  const [formData, setFormData] = useState<{
+    stressLevel: StressLevel;
+    lifeEvents: LifeEvent[];
+    ageRange: AgeRange | '';
+    employmentStatus: EmploymentStatus | '';
+    monthlyIncome: string;
+    monthlyExpenses: string;
+    liquidSavings: string;
+    creditScoreRange: CreditScoreRange | '';
+  }>({
+    stressLevel: 3,
+    lifeEvents: [],
+    ageRange: '',
+    employmentStatus: '',
     monthlyIncome: '',
     monthlyExpenses: '',
     liquidSavings: '',
-    creditScoreRange: '' as CreditScoreRange
+    creditScoreRange: ''
   });
+
+  // Initialize or recover session on mount
+  useEffect(() => {
+    const initializeSession = async () => {
+      try {
+        const userId = getUserId();
+        const existingProfileId = getProfileId();
+        
+        if (existingProfileId) {
+          // User has an existing profile, set it
+          setProfileIdState(existingProfileId);
+          setContextProfileId(existingProfileId);
+        } else {
+          // Check if profile exists for this user_id
+          const existingProfile = await getProfileByUserId(userId);
+          if (existingProfile) {
+            // Profile exists, recover session
+            setProfileId(existingProfile.id);
+            setProfileIdState(existingProfile.id);
+            setContextProfileId(existingProfile.id);
+          }
+        }
+      } catch (err) {
+        console.error('Error initializing session:', err);
+      }
+    };
+
+    initializeSession();
+  }, []);
 
   const stressEmojis = ['😌', '🙂', '😐', '😟', '😰'];
   const stressLabels = [
@@ -162,25 +206,99 @@ const Onboarding = () => {
     return labels[range];
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step < totalSteps) {
+      // Save progress after each step
+      await saveProgress();
       setStep(step + 1);
     } else {
       // Complete onboarding and go to debt entry
-      const context: FinancialContext = {
-        ageRange: formData.ageRange,
-        employmentStatus: formData.employmentStatus,
-        monthlyIncome: parseFloat(formData.monthlyIncome),
-        monthlyExpenses: parseFloat(formData.monthlyExpenses),
-        liquidSavings: parseFloat(formData.liquidSavings),
-        creditScoreRange: formData.creditScoreRange,
-        primaryGoal: selectedGoal,
-        stressLevel: formData.stressLevel,
-        lifeEvents: formData.lifeEvents.length > 0 ? formData.lifeEvents : undefined
-      };
-      setFinancialContext(context);
-      setOnboardingComplete(true);
-      navigate('/debt-entry');
+      await saveProgress();
+      
+      // Type guard to ensure all required fields are filled
+      if (formData.ageRange && formData.employmentStatus && formData.creditScoreRange) {
+        const context: FinancialContext = {
+          ageRange: formData.ageRange,
+          employmentStatus: formData.employmentStatus,
+          monthlyIncome: parseFloat(formData.monthlyIncome),
+          monthlyExpenses: parseFloat(formData.monthlyExpenses),
+          liquidSavings: parseFloat(formData.liquidSavings),
+          creditScoreRange: formData.creditScoreRange,
+          primaryGoal: selectedGoal,
+          stressLevel: formData.stressLevel,
+          lifeEvents: formData.lifeEvents.length > 0 ? formData.lifeEvents : undefined
+        };
+        setFinancialContext(context);
+        setOnboardingComplete(true);
+        navigate('/debt-entry');
+      }
+    }
+  };
+
+  const saveProgress = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const userId = getUserId();
+
+      if (!profileId) {
+        // Step 1: Create profile with minimal required fields
+        const newProfile = await createProfile({
+          user_id: userId,
+          primary_goal: selectedGoal
+        });
+        setProfileId(newProfile.id);
+        setProfileIdState(newProfile.id);
+        setContextProfileId(newProfile.id);
+        
+        // If we have data from step 1, update immediately
+        if (step === 1) {
+          const updates: ProfileUpdateRequest = {
+            stress_level: formData.stressLevel,
+            financial_context: formData.lifeEvents.length > 0 ? {
+              life_events: formData.lifeEvents
+            } : undefined
+          };
+          await updateProfile(newProfile.id, updates);
+        }
+      } else {
+        // Update existing profile progressively based on current step
+        const updates: ProfileUpdateRequest = {};
+
+        if (step === 1) {
+          updates.stress_level = formData.stressLevel;
+          if (formData.lifeEvents.length > 0) {
+            updates.financial_context = {
+              life_events: formData.lifeEvents
+            };
+          }
+        } else if (step === 2 && formData.ageRange && formData.employmentStatus) {
+          updates.financial_context = {
+            age_range: formData.ageRange,
+            employment_status: formData.employmentStatus
+          };
+        } else if (step === 3) {
+          updates.financial_context = {
+            monthly_income: parseFloat(formData.monthlyIncome),
+            monthly_expenses: parseFloat(formData.monthlyExpenses)
+          };
+        } else if (step === 4 && formData.creditScoreRange) {
+          updates.financial_context = {
+            liquid_savings: parseFloat(formData.liquidSavings),
+            credit_score_range: formData.creditScoreRange
+          };
+        }
+
+        if (Object.keys(updates).length > 0) {
+          await updateProfile(profileId, updates);
+        }
+      }
+    } catch (err) {
+      console.error('Error saving progress:', err);
+      setError(err instanceof Error ? err.message : 'Failed to save progress');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -531,13 +649,15 @@ const Onboarding = () => {
                     )}
                   </div>
                   
-                  <div className="p-4 bg-[#F7F9FA] rounded-lg">
-                    <p className="text-sm text-[#4F6A7A] mb-1">Your situation</p>
-                    <p className="font-medium text-[#002B45] mb-2">
-                      {formData.ageRange} • {formData.employmentStatus.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-                    </p>
-                    <p className="text-sm text-[#3A4F61] italic">{getSituationInsight(formData.ageRange, formData.employmentStatus)}</p>
-                  </div>
+                  {formData.ageRange && formData.employmentStatus && (
+                    <div className="p-4 bg-[#F7F9FA] rounded-lg">
+                      <p className="text-sm text-[#4F6A7A] mb-1">Your situation</p>
+                      <p className="font-medium text-[#002B45] mb-2">
+                        {formData.ageRange} • {formData.employmentStatus.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                      </p>
+                      <p className="text-sm text-[#3A4F61] italic">{getSituationInsight(formData.ageRange, formData.employmentStatus)}</p>
+                    </div>
+                  )}
                   
                   <div className="p-4 bg-[#F7F9FA] rounded-lg">
                     <p className="text-sm text-[#4F6A7A] mb-1">Monthly cash flow</p>
@@ -558,12 +678,14 @@ const Onboarding = () => {
                     <p className="text-sm text-[#3A4F61] italic">{getCashFlowInsight(calculateAvailableCashFlow())}</p>
                   </div>
 
-                  <div className="p-4 bg-[#F7F9FA] rounded-lg">
-                    <p className="text-sm text-[#4F6A7A] mb-1">Savings & credit</p>
-                    <p className="font-medium text-[#002B45]">
-                      ${parseFloat(formData.liquidSavings).toLocaleString()} in savings • {getCreditScoreLabel(formData.creditScoreRange)} credit score
-                    </p>
-                  </div>
+                  {formData.creditScoreRange && (
+                    <div className="p-4 bg-[#F7F9FA] rounded-lg">
+                      <p className="text-sm text-[#4F6A7A] mb-1">Savings & credit</p>
+                      <p className="font-medium text-[#002B45]">
+                        ${parseFloat(formData.liquidSavings).toLocaleString()} in savings • {getCreditScoreLabel(formData.creditScoreRange)} credit score
+                      </p>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="bg-[#E7F7F4] rounded-lg p-6 text-center">
@@ -577,10 +699,17 @@ const Onboarding = () => {
               </div>
             )}
 
+            {error && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
+                {error}
+              </div>
+            )}
+
             <div className="flex justify-between pt-6">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={handleBack}
+                disabled={isLoading}
                 className="border-[#D4DFE4] text-[#002B45] rounded-xl"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
@@ -588,11 +717,11 @@ const Onboarding = () => {
               </Button>
               <Button
                 onClick={handleNext}
-                disabled={!isStepValid()}
+                disabled={!isStepValid() || isLoading}
                 className="bg-[#009A8C] hover:bg-[#007F74] text-white font-semibold rounded-xl"
               >
-                {step === totalSteps ? 'Add My Debts' : 'Next'}
-                <ArrowRight className="w-4 h-4 ml-2" />
+                {isLoading ? 'Saving...' : (step === totalSteps ? 'Add My Debts' : 'Next')}
+                {!isLoading && <ArrowRight className="w-4 h-4 ml-2" />}
               </Button>
             </div>
           </CardContent>

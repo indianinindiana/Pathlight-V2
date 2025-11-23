@@ -16,8 +16,26 @@ class Database:
         if not database_url:
             raise ValueError("DATABASE_URL environment variable is not set")
         
-        cls.client = AsyncIOMotorClient(database_url)
-        print("Connected to MongoDB Atlas")
+        try:
+            # Simple connection - let Motor handle SSL/TLS automatically
+            cls.client = AsyncIOMotorClient(
+                database_url,
+                serverSelectionTimeoutMS=30000,
+                connectTimeoutMS=30000,
+                socketTimeoutMS=30000
+            )
+            
+            # Test the connection
+            await cls.client.admin.command('ping')
+            print("✓ Successfully connected to MongoDB Atlas")
+        except Exception as e:
+            print(f"✗ Failed to connect to MongoDB Atlas: {str(e)}")
+            print(f"   Possible issues:")
+            print(f"   1. Check MongoDB Atlas IP whitelist (add 0.0.0.0/0 for testing)")
+            print(f"   2. Verify credentials in connection string")
+            print(f"   3. Ensure cluster is running")
+            print(f"   4. Check network connectivity")
+            raise
     
     @classmethod
     async def close_db(cls):

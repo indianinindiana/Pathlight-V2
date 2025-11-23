@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from app.profile.routes import router as profile_router
 from app.debts.routes import router as debts_router
 from app.shared.database import Database
@@ -13,6 +14,20 @@ async def lifespan(app: FastAPI):
     await Database.close_db()
 
 app = FastAPI(lifespan=lifespan)
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:5137",
+        "http://localhost:3000",
+        "http://localhost:32100"
+    ],  # Frontend URLs
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all methods (GET, POST, PUT, DELETE, PATCH, OPTIONS, etc.)
+    allow_headers=["*"],  # Allow all headers
+)
 
 # Include routers
 app.include_router(profile_router)

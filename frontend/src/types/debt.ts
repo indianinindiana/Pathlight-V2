@@ -1,4 +1,4 @@
-export type DebtType = 'credit-card' | 'personal-loan' | 'student-loan' | 'auto-loan';
+export type DebtType = 'credit-card' | 'personal-loan' | 'student-loan' | 'auto-loan' | 'mortgage' | 'installment-loan';
 
 export type PayoffGoal = 'lower-payment' | 'pay-faster' | 'reduce-interest' | 'avoid-default';
 
@@ -31,6 +31,25 @@ export interface Debt {
   nextPaymentDate: Date;
   customOrder?: number;
   isDelinquent?: boolean;
+  // Optional common fields
+  lenderName?: string;
+  aprType?: 'fixed' | 'variable';
+  paymentType?: 'minimum' | 'fixed-amount' | 'full' | 'custom';
+  actualMonthlyPayment?: number;
+  // Optional loan fields
+  originalPrincipal?: number;
+  termMonths?: number;
+  originationDate?: Date;
+  remainingMonths?: number;
+  // Optional credit card fields
+  creditLimit?: number;
+  lateFees?: number;
+  // Optional student loan fields
+  loanProgram?: 'federal' | 'private';
+  // Optional mortgage fields
+  escrowIncluded?: boolean;
+  propertyTax?: number;
+  homeInsurance?: number;
 }
 
 export interface FinancialContext {

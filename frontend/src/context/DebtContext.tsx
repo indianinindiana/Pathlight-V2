@@ -36,6 +36,8 @@ interface DebtContextType {
   setOnboardingComplete: (complete: boolean) => void;
   calibrationComplete: boolean;
   setCalibrationComplete: (complete: boolean) => void;
+  profileId: string | null;
+  setProfileId: (id: string | null) => void;
   
   // Utility
   clearSession: () => void;
@@ -52,6 +54,7 @@ export const DebtProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [aiGuidance, setAIGuidanceState] = useState<AIGuidance[]>([]);
   const [onboardingComplete, setOnboardingCompleteState] = useState(false);
   const [calibrationComplete, setCalibrationCompleteState] = useState(false);
+  const [profileId, setProfileIdState] = useState<string | null>(null);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -65,6 +68,7 @@ export const DebtProvider: React.FC<{ children: React.ReactNode }> = ({ children
           nextPaymentDate: new Date(d.nextPaymentDate)
         })));
         if (data.onboardingComplete) setOnboardingCompleteState(data.onboardingComplete);
+        if (data.profileId) setProfileIdState(data.profileId);
       } catch (e) {
         console.error('Failed to load session:', e);
       }
@@ -77,10 +81,11 @@ export const DebtProvider: React.FC<{ children: React.ReactNode }> = ({ children
       financialContext,
       debts,
       onboardingComplete,
-      calibrationComplete
+      calibrationComplete,
+      profileId
     };
     localStorage.setItem('debtPathfinderSession', JSON.stringify(data));
-  }, [financialContext, debts, onboardingComplete, calibrationComplete]);
+  }, [financialContext, debts, onboardingComplete, calibrationComplete, profileId]);
 
   const setFinancialContext = (context: FinancialContext) => {
     setFinancialContextState(context);
@@ -134,6 +139,10 @@ export const DebtProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCalibrationCompleteState(complete);
   };
 
+  const setProfileId = (id: string | null) => {
+    setProfileIdState(id);
+  };
+
   const clearSession = () => {
     setFinancialContextState(null);
     setDebtsState([]);
@@ -143,6 +152,7 @@ export const DebtProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAIGuidanceState([]);
     setOnboardingCompleteState(false);
     setCalibrationCompleteState(false);
+    setProfileIdState(null);
     localStorage.removeItem('debtPathfinderSession');
   };
 
@@ -169,6 +179,8 @@ export const DebtProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setOnboardingComplete,
       calibrationComplete,
       setCalibrationComplete,
+      profileId,
+      setProfileId,
       clearSession
     }}>
       {children}
