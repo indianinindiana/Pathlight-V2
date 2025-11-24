@@ -1,4 +1,4 @@
-# Product Requirements Document: Debt PathFinder
+# Product Requirements Document: PathLight
 
 **Version:** 1.0  
 **Last Updated:** January 2024  
@@ -31,7 +31,7 @@
 
 ### Product Overview
 
-**Debt PathFinder** is a frontend-only web application that helps users understand their debt situation and create personalized payoff strategies. The application provides AI-powered insights, scenario modeling, and actionable recommendations without requiring backend infrastructure or database integration.
+**PathLight** is a frontend-only web application that helps users understand their debt situation and create personalized payoff strategies. The application provides AI-powered insights, scenario modeling, and actionable recommendations without requiring backend infrastructure or database integration.
 
 ### Key Features
 
@@ -70,7 +70,7 @@ Millions of Americans struggle with debt, but existing solutions are either:
 
 ### Our Solution
 
-Debt PathFinder provides:
+PathLight provides:
 - **Personalized Strategies**: Tailored to individual financial situations and stress levels
 - **Clear Visualizations**: Easy-to-understand debt payoff projections
 - **Empathetic Guidance**: Stress-aware messaging and encouragement

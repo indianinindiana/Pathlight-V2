@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDebt } from '@/context/DebtContext';
 import { Button } from '@/components/ui/button';
-import { Zap, Calendar, Percent, Shield, Lock, Clock, Heart, DollarSign, ArrowRight, RefreshCw, Check, Compass } from 'lucide-react';
+import { Zap, Calendar, Percent, Shield, Lock, Clock, Heart, DollarSign, ArrowRight, RefreshCw, Check } from 'lucide-react';
 import { PayoffGoal } from '@/types/debt';
 
 const Index = () => {
@@ -58,9 +58,9 @@ const Index = () => {
       <header className="w-full bg-white/80 backdrop-blur-sm border-b border-gray-100">
         <div className="container mx-auto px-4 md:px-6">
           <div className="flex items-center py-5 md:py-6">
-            <Compass className="w-6 h-6 md:w-7 md:h-7 text-[#009A8C] mr-2.5" strokeWidth={2.5} />
+            <img src="/pathlight-logo-v2.svg" alt="PathLight" className="w-8 h-8 md:w-10 md:h-10 mr-2.5" />
             <h1 className="text-[20px] md:text-[24px] font-bold text-[#002B45] tracking-tight" style={{ letterSpacing: '-0.5%' }}>
-              Debt PathFinder
+              PathLight
             </h1>
           </div>
         </div>

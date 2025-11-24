@@ -1,0 +1,66 @@
+<svg width="200" height="70" viewBox="0 0 200 70" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Gradient for the flame -->
+    <linearGradient id="flameGradient" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" style="stop-color:#FEF3C7;stop-opacity:1" />
+      <stop offset="25%" style="stop-color:#FCD34D;stop-opacity:1" />
+      <stop offset="60%" style="stop-color:#F59E0B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#D97706;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Inner flame gradient (lighter) -->
+    <linearGradient id="innerFlameGradient" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFBEB;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#FEF3C7;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FCD34D;stop-opacity:0.8" />
+    </linearGradient>
+    
+    <!-- Glow effect for flame -->
+    <filter id="flameGlow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- PathLight wordmark -->
+  <g id="wordmark">
+    <!-- Complete text in one line with consistent font size -->
+    <text x="0" y="55" font-family="Inter, -apple-system, sans-serif" font-size="32" font-weight="700" fill="#002B45" letter-spacing="-0.02em">
+      PathLight
+    </text>
+  </g>
+  
+  <!-- Candle flame positioned above the L -->
+  <g id="flame" transform="translate(82, 8)" filter="url(#flameGlow)">
+    <!-- Outer flame shape (teardrop) -->
+    <path d="M 0 20 Q -6 12, -4 6 Q -2 2, 0 0 Q 2 2, 4 6 Q 6 12, 0 20 Z" 
+          fill="url(#flameGradient)" 
+          opacity="0.95"/>
+    
+    <!-- Middle flame layer -->
+    <path d="M 0 18 Q -4 12, -2 7 Q -1 4, 0 2 Q 1 4, 2 7 Q 4 12, 0 18 Z" 
+          fill="url(#flameGradient)" 
+          opacity="0.8"/>
+    
+    <!-- Inner flame (brightest part) -->
+    <ellipse cx="0" cy="10" rx="2.5" ry="6" 
+             fill="url(#innerFlameGradient)"/>
+    
+    <!-- Flame tip highlight -->
+    <ellipse cx="0" cy="3" rx="1.5" ry="2.5" 
+             fill="#FFFBEB" 
+             opacity="0.9"/>
+    
+    <!-- Small sparkle at tip -->
+    <circle cx="0" cy="1" r="0.8" fill="#FFFBEB"/>
+  </g>
+  
+  <!-- Subtle candle wick connecting flame to L -->
+  <line x1="82" y1="28" x2="82" y2="32" 
+        stroke="#002B45" 
+        stroke-width="0.8" 
+        opacity="0.6"/>
+</svg>

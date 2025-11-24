@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDebt } from '@/context/DebtContext';
 import { Button } from '@/components/ui/button';
-import { Compass, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import DebtEntryForm from '@/components/DebtEntryForm';
 import DebtList from '@/components/DebtList';
 import CSVImportDialog from '@/components/CSVImportDialog';
@@ -50,9 +50,9 @@ const DebtEntry = () => {
         <div className="container mx-auto px-4 md:px-6">
           <div className="flex items-center justify-between py-5 md:py-6">
             <div className="flex items-center">
-              <Compass className="w-6 h-6 md:w-7 md:h-7 text-[#009A8C] mr-2.5" strokeWidth={2.5} />
+              <img src="/pathlight-logo-v2.svg" alt="PathLight" className="w-8 h-8 md:w-10 md:h-10 mr-2.5" />
               <h1 className="text-[20px] md:text-[24px] font-bold text-[#002B45] tracking-tight" style={{ letterSpacing: '-0.5%' }}>
-                Debt PathFinder
+                PathLight
               </h1>
             </div>
           </div>
