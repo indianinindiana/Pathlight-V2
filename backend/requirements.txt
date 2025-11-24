@@ -4,3 +4,4 @@ pydantic
 python-dotenv
 motor
 certifi
+python-multipart

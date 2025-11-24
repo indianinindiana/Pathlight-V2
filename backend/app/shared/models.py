@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 from typing import List, Optional
 from datetime import datetime
 from .enums import AgeRange, EmploymentStatus, CreditScoreRange, LifeEvent, PrimaryGoal
@@ -15,7 +15,10 @@ class FinancialContext(BaseModel):
     life_events: Optional[List[LifeEvent]] = Field(None, description="Upcoming life events")
 
 class Profile(BaseModel):
-    """User profile with minimal required fields for initial creation"""
+    """
+    User profile with minimal required fields for initial creation.
+    Includes calculated fields for financial analysis.
+    """
     id: Optional[str] = Field(alias="_id", default=None)
     user_id: str = Field(..., description="Frontend-generated session identifier")
     primary_goal: PrimaryGoal = Field(..., description="User's primary debt payoff goal")
@@ -23,6 +26,85 @@ class Profile(BaseModel):
     financial_context: Optional[FinancialContext] = Field(None, description="Detailed financial information")
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    
+    # Store total debt for debt-to-income calculation (will be updated by debt operations)
+    total_debt: Optional[float] = Field(None, ge=0, description="Total debt balance across all debts")
+
+    @computed_field
+    @property
+    def cash_flow(self) -> Optional[float]:
+        """
+        Calculate available cash flow (income - expenses).
+        Returns None if financial context is incomplete.
+        """
+        if (self.financial_context and
+            self.financial_context.monthly_income is not None and
+            self.financial_context.monthly_expenses is not None):
+            return self.financial_context.monthly_income - self.financial_context.monthly_expenses
+        return None
+    
+    @computed_field
+    @property
+    def debt_to_income_ratio(self) -> Optional[float]:
+        """
+        Calculate debt-to-income ratio (total debt / annual income).
+        Returns None if data is incomplete.
+        Formula: (Total Debt / (Monthly Income × 12)) × 100
+        """
+        if (self.total_debt is not None and
+            self.financial_context and
+            self.financial_context.monthly_income is not None and
+            self.financial_context.monthly_income > 0):
+            annual_income = self.financial_context.monthly_income * 12
+            return (self.total_debt / annual_income) * 100
+        return None
+    
+    @computed_field
+    @property
+    def emergency_fund_ratio(self) -> Optional[float]:
+        """
+        Calculate emergency fund ratio (savings / monthly expenses).
+        Returns number of months of expenses covered by savings.
+        """
+        if (self.financial_context and
+            self.financial_context.liquid_savings is not None and
+            self.financial_context.monthly_expenses is not None and
+            self.financial_context.monthly_expenses > 0):
+            return self.financial_context.liquid_savings / self.financial_context.monthly_expenses
+        return None
+    
+    @computed_field
+    @property
+    def profile_completeness(self) -> float:
+        """
+        Calculate profile completeness score (0-1).
+        Used for confidence scoring (BR-3).
+        """
+        total_fields = 8
+        completed_fields = 0
+        
+        # Check required fields
+        if self.primary_goal:
+            completed_fields += 1
+        if self.stress_level is not None:
+            completed_fields += 1
+        
+        # Check financial context fields
+        if self.financial_context:
+            if self.financial_context.monthly_income is not None:
+                completed_fields += 1
+            if self.financial_context.monthly_expenses is not None:
+                completed_fields += 1
+            if self.financial_context.liquid_savings is not None:
+                completed_fields += 1
+            if self.financial_context.credit_score_range is not None:
+                completed_fields += 1
+            if self.financial_context.age_range is not None:
+                completed_fields += 1
+            if self.financial_context.employment_status is not None:
+                completed_fields += 1
+        
+        return completed_fields / total_fields
 
     class Config:
         populate_by_name = True
@@ -32,6 +114,7 @@ class ProfileUpdate(BaseModel):
     primary_goal: Optional[PrimaryGoal] = None
     stress_level: Optional[int] = Field(None, ge=1, le=5)
     financial_context: Optional[FinancialContext] = None
+    total_debt: Optional[float] = Field(None, ge=0)
 
 class Debt(BaseModel):
     id: Optional[str] = Field(alias="_id", default=None)

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,15 +7,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Debt, DebtType } from '@/types/debt';
-import { Plus, X, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
-import { suggestMinimumPayment, validateMinimumPayment } from '@/utils/debtCalculations';
-import { showSuccess, showError } from '@/utils/toast';
+import { Plus, X, AlertCircle, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { validateDebt, getSuggestedMinimumPayment } from '@/services/debtApi';
+import { showError } from '@/utils/toast';
 
 interface DebtEntryFormProps {
-  onAdd: (debt: Debt) => void;
+  onAdd: (debt: Omit<Debt, 'id'>) => Promise<void>;
   onCancel?: () => void;
   editingDebt?: Debt | null;
-  onUpdate?: (id: string, debt: Partial<Debt>) => void;
+  onUpdate?: (id: string, debt: Partial<Debt>) => Promise<void>;
 }
 
 const DebtEntryForm = ({ onAdd, onCancel, editingDebt, onUpdate }: DebtEntryFormProps) => {
@@ -94,21 +94,67 @@ const DebtEntryForm = ({ onAdd, onCancel, editingDebt, onUpdate }: DebtEntryForm
   });
 
   const [showMinPaymentWarning, setShowMinPaymentWarning] = useState(false);
+  const [validationWarnings, setValidationWarnings] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Real-time validation when balance, APR, or minimum payment changes
+  useEffect(() => {
+    const validateFields = async () => {
+      if (formData.balance && formData.apr && formData.minimumPayment) {
+        setIsValidating(true);
+        try {
+          const result = await validateDebt({
+            balance: parseFloat(formData.balance),
+            apr: parseFloat(formData.apr),
+            minimum_payment: parseFloat(formData.minimumPayment)
+          });
+
+          if (!result.valid) {
+            setShowMinPaymentWarning(true);
+          } else {
+            setShowMinPaymentWarning(false);
+          }
+
+          // Set warnings
+          const warningMessages = result.warnings.map(w => w.message);
+          setValidationWarnings(warningMessages);
+        } catch (error) {
+          console.error('Validation error:', error);
+        } finally {
+          setIsValidating(false);
+        }
+      }
+    };
+
+    const debounceTimer = setTimeout(validateFields, 500);
+    return () => clearTimeout(debounceTimer);
+  }, [formData.balance, formData.apr, formData.minimumPayment]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
     const balance = parseFloat(formData.balance);
     const apr = parseFloat(formData.apr);
     const minimumPayment = parseFloat(formData.minimumPayment);
 
-    // Validate minimum payment
-    if (!validateMinimumPayment(balance, apr, minimumPayment)) {
-      const suggested = suggestMinimumPayment(balance, apr);
-      showError(`Minimum payment should be at least $${suggested.toFixed(2)} to cover interest`);
-      setShowMinPaymentWarning(true);
-      return;
-    }
+    try {
+      // Validate with backend before submitting
+      const validation = await validateDebt({
+        balance,
+        apr,
+        minimum_payment: minimumPayment,
+        type: formData.type,
+        name: formData.name
+      });
+
+      if (!validation.valid) {
+        showError(validation.errors.join(', '));
+        setShowMinPaymentWarning(true);
+        setIsSubmitting(false);
+        return;
+      }
 
     const debtData: any = {
       type: formData.type,
@@ -138,51 +184,60 @@ const DebtEntryForm = ({ onAdd, onCancel, editingDebt, onUpdate }: DebtEntryForm
       if (formData.homeInsurance) debtData.homeInsurance = parseFloat(formData.homeInsurance);
     }
 
-    if (editingDebt && onUpdate) {
-      onUpdate(editingDebt.id, debtData);
-      showSuccess('Debt updated successfully');
-    } else {
-      const newDebt: Debt = {
-        id: `debt-${Date.now()}`,
-        ...debtData
-      };
-      onAdd(newDebt);
-      showSuccess('Debt added successfully');
-    }
+      if (editingDebt && onUpdate) {
+        await onUpdate(editingDebt.id, debtData);
+      } else {
+        await onAdd(debtData);
+      }
 
-    // Reset form
-    setFormData({
-      type: 'credit-card',
-      name: '',
-      balance: '',
-      apr: '',
-      minimumPayment: '',
-      nextPaymentDate: new Date().toISOString().split('T')[0],
-      isDelinquent: false,
-      lenderName: '',
-      aprType: '',
-      paymentType: '',
-      actualMonthlyPayment: '',
-      originalPrincipal: '',
-      termMonths: '',
-      originationDate: '',
-      remainingMonths: '',
-      creditLimit: '',
-      lateFees: '',
-      loanProgram: '',
-      escrowIncluded: false,
-      propertyTax: '',
-      homeInsurance: ''
-    });
-    setShowMinPaymentWarning(false);
-    setShowAdvanced(false);
+      // Reset form
+      setFormData({
+        type: 'credit-card',
+        name: '',
+        balance: '',
+        apr: '',
+        minimumPayment: '',
+        nextPaymentDate: new Date().toISOString().split('T')[0],
+        isDelinquent: false,
+        lenderName: '',
+        aprType: '',
+        paymentType: '',
+        actualMonthlyPayment: '',
+        originalPrincipal: '',
+        termMonths: '',
+        originationDate: '',
+        remainingMonths: '',
+        creditLimit: '',
+        lateFees: '',
+        loanProgram: '',
+        escrowIncluded: false,
+        propertyTax: '',
+        homeInsurance: ''
+      });
+      setShowMinPaymentWarning(false);
+      setValidationWarnings([]);
+      setShowAdvanced(false);
+    } catch (error) {
+      console.error('Error submitting debt:', error);
+      // Error is already shown by the context
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleSuggestMinPayment = () => {
+  const handleSuggestMinPayment = async () => {
     if (formData.balance && formData.apr) {
-      const suggested = suggestMinimumPayment(parseFloat(formData.balance), parseFloat(formData.apr));
-      setFormData({ ...formData, minimumPayment: suggested.toFixed(2) });
-      setShowMinPaymentWarning(false);
+      try {
+        const result = await getSuggestedMinimumPayment(
+          parseFloat(formData.balance),
+          parseFloat(formData.apr)
+        );
+        setFormData({ ...formData, minimumPayment: result.suggested_minimum_payment.toFixed(2) });
+        setShowMinPaymentWarning(false);
+      } catch (error) {
+        console.error('Error getting suggestion:', error);
+        showError('Failed to get payment suggestion');
+      }
     }
   };
 
@@ -491,12 +546,23 @@ const DebtEntryForm = ({ onAdd, onCancel, editingDebt, onUpdate }: DebtEntryForm
                   onClick={handleSuggestMinPayment}
                   disabled={!formData.balance || !formData.apr}
                   className="whitespace-nowrap"
+                  disabled={isValidating}
                 >
-                  Suggest
+                  {isValidating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Suggest'}
                 </Button>
               </div>
               {showMinPaymentWarning && (
                 <p className="text-sm text-red-600">Payment may not cover monthly interest</p>
+              )}
+              {validationWarnings.length > 0 && (
+                <div className="space-y-1">
+                  {validationWarnings.map((warning, idx) => (
+                    <p key={idx} className="text-sm text-orange-600 flex items-start gap-1">
+                      <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <span>{warning}</span>
+                    </p>
+                  ))}
+                </div>
               )}
             </div>
 
@@ -558,10 +624,15 @@ const DebtEntryForm = ({ onAdd, onCancel, editingDebt, onUpdate }: DebtEntryForm
           <div className="flex gap-3 pt-4">
             <Button
               type="submit"
-              disabled={!isFormValid}
+              disabled={!isFormValid || isSubmitting || isValidating}
               className="bg-[#009A8C] hover:bg-[#007F74] text-white font-semibold rounded-xl"
             >
-              {editingDebt ? (
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {editingDebt ? 'Updating...' : 'Adding...'}
+                </>
+              ) : editingDebt ? (
                 <>Update Debt</>
               ) : (
                 <>

@@ -2,25 +2,31 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDebt } from '@/context/DebtContext';
 import { Button } from '@/components/ui/button';
-import { Compass, ArrowRight, Upload } from 'lucide-react';
+import { Compass, ArrowRight } from 'lucide-react';
 import DebtEntryForm from '@/components/DebtEntryForm';
 import DebtList from '@/components/DebtList';
+import CSVImportDialog from '@/components/CSVImportDialog';
 import { Debt } from '@/types/debt';
 import { showSuccess } from '@/utils/toast';
 
 const DebtEntry = () => {
   const navigate = useNavigate();
-  const { debts, addDebt, updateDebt, deleteDebt, setCalibrationComplete } = useDebt();
+  const { debts, addDebt, updateDebt, deleteDebt, setCalibrationComplete, loadDebts, isLoadingDebts } = useDebt();
   const [editingDebt, setEditingDebt] = useState<Debt | null>(null);
 
-  const handleAddDebt = (debt: Debt) => {
-    addDebt(debt);
+  const handleAddDebt = async (debt: Omit<Debt, 'id'>) => {
+    await addDebt(debt);
     setEditingDebt(null);
   };
 
-  const handleUpdateDebt = (id: string, updates: Partial<Debt>) => {
-    updateDebt(id, updates);
+  const handleUpdateDebt = async (id: string, updates: Partial<Debt>) => {
+    await updateDebt(id, updates);
     setEditingDebt(null);
+  };
+
+  const handleImportComplete = () => {
+    // Reload debts after CSV import
+    loadDebts();
   };
 
   const handleEditDebt = (debt: Debt) => {
@@ -76,13 +82,7 @@ const DebtEntry = () => {
 
         {/* CSV Upload Option */}
         <div className="mb-8">
-          <Button
-            variant="outline"
-            className="w-full md:w-auto border-[#D4DFE4] text-[#002B45] hover:bg-[#F7F9FA] rounded-xl"
-          >
-            <Upload className="w-4 h-4 mr-2" />
-            Upload CSV File
-          </Button>
+          <CSVImportDialog onImportComplete={handleImportComplete} />
           <p className="text-sm text-[#4F6A7A] mt-2">
             Have multiple debts? Upload a CSV file to add them all at once
           </p>
@@ -92,6 +92,7 @@ const DebtEntry = () => {
         <div className="mb-8">
           <h3 className="text-xl font-semibold text-[#002B45] mb-4">
             Your Debts ({debts.length})
+            {isLoadingDebts && <span className="text-sm text-[#4F6A7A] ml-2">(Loading...)</span>}
           </h3>
           <DebtList
             debts={debts}
