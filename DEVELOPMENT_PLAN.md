@@ -301,9 +301,12 @@ To ensure a stable and reliable application, and to support parallel development
 **Tasks:**
 
 1.  ⏳ **Backend: AI Services:**
-    *   Implement `POST /api/v1/ai/insights` endpoint
-    *   Implement `POST /api/v1/ai/ask` endpoint
-    *   Integrate OpenAI API
+    *   **Onboarding:** Implement a conversational AI chat experience for user onboarding, replacing the traditional form-based flow.
+    *   **Insights & Q&A:**
+        *   Implement `POST /api/v1/ai/insights` endpoint
+        *   Implement `POST /api/v1/ai/ask` endpoint
+    *   **Core Integration:**
+        *   Integrate OpenAI API
     *   Implement global AI response schema
     *   Add prompt templates in configuration files
     *   Add response validation and sanitization

@@ -79,6 +79,15 @@ class SimpleDebt(BaseModel):
     
     @computed_field
     @property
+    def is_amortizing(self) -> bool:
+        """
+        Check if the debt is amortizing (principal is being paid down).
+        Returns False if minimum payment doesn't cover monthly interest.
+        """
+        return self.minimum_payment > self.monthly_interest
+    
+    @computed_field
+    @property
     def months_to_payoff_at_minimum(self) -> Optional[int]:
         """
         Calculate months to payoff at minimum payment.
