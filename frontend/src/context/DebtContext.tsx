@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Debt, FinancialContext, PayoffScenario, WhatIfScenario, ProductRecommendation, AIGuidance } from '@/types/debt';
 import * as debtApi from '@/services/debtApi';
-import { getProfileId } from '@/services/sessionManager';
+import { getProfileId, getSessionId } from '@/services/sessionManager';
 import { showSuccess, showError } from '@/utils/toast';
+import { trackEvent, checkMilestones } from '@/services/analyticsApi';
 
 interface DebtContextType {
   // Financial Context
@@ -205,6 +206,26 @@ export const DebtProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       setDebtsState(prev => [...prev, newDebt]);
       showSuccess('Debt added successfully');
+      
+      // Track analytics event
+      if (currentProfileId) {
+        trackEvent({
+          profile_id: currentProfileId,
+          event_type: 'debt_added',
+          event_data: {
+            debt_type: newDebt.type,
+            balance: newDebt.balance,
+            apr: newDebt.apr,
+          },
+          session_id: getSessionId(),
+        });
+        
+        // Check for milestones
+        checkMilestones({
+          profile_id: currentProfileId,
+          trigger_event: 'debt_added',
+        });
+      }
     } catch (error) {
       console.error('Failed to add debt:', error);
       showError(error instanceof Error ? error.message : 'Failed to add debt');
@@ -268,6 +289,20 @@ export const DebtProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       setDebtsState(prev => prev.map(d => d.id === id ? convertedDebt : d));
       showSuccess('Debt updated successfully');
+      
+      // Track analytics event
+      const currentProfileId = getProfileId();
+      if (currentProfileId) {
+        trackEvent({
+          profile_id: currentProfileId,
+          event_type: 'debt_updated',
+          event_data: {
+            debt_id: id,
+            updated_fields: Object.keys(updates),
+          },
+          session_id: getSessionId(),
+        });
+      }
     } catch (error) {
       console.error('Failed to update debt:', error);
       showError(error instanceof Error ? error.message : 'Failed to update debt');
@@ -277,9 +312,24 @@ export const DebtProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteDebt = async (id: string) => {
     try {
+      const deletedDebt = debts.find(d => d.id === id);
       await debtApi.deleteDebt(id);
       setDebtsState(prev => prev.filter(d => d.id !== id));
       showSuccess('Debt deleted successfully');
+      
+      // Track analytics event
+      const currentProfileId = getProfileId();
+      if (currentProfileId && deletedDebt) {
+        trackEvent({
+          profile_id: currentProfileId,
+          event_type: 'debt_deleted',
+          event_data: {
+            debt_type: deletedDebt.type,
+            balance: deletedDebt.balance,
+          },
+          session_id: getSessionId(),
+        });
+      }
     } catch (error) {
       console.error('Failed to delete debt:', error);
       showError(error instanceof Error ? error.message : 'Failed to delete debt');

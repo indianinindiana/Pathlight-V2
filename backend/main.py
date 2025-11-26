@@ -2,6 +2,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.profile.routes import router as profile_router
 from app.debts.routes import router as debts_router
+from app.scenarios.routes import router as scenarios_router
+from app.recommendations.routes import router as recommendations_router
+from app.ai_services.routes import router as ai_services_router
+from app.personalization.routes import router as personalization_router
+from app.config.routes import router as config_router
+from app.export.routes import router as export_router
+from app.analytics.routes import router as analytics_router
 from app.shared.database import Database
 from contextlib import asynccontextmanager
 
@@ -32,6 +39,13 @@ app.add_middleware(
 # Include routers
 app.include_router(profile_router)
 app.include_router(debts_router)
+app.include_router(scenarios_router)
+app.include_router(recommendations_router)
+app.include_router(ai_services_router)
+app.include_router(personalization_router)
+app.include_router(config_router)
+app.include_router(export_router)
+app.include_router(analytics_router)
 
 @app.get("/api/v1/health")
 def read_root():

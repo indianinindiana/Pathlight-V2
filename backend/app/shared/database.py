@@ -61,6 +61,11 @@ class Database:
 def get_db():
     return Database.get_database()
 
+# Async convenience function for new routes
+async def get_database():
+    """Async function to get database instance"""
+    return Database.get_database()
+
 # Convenience functions to get collections
 def get_profiles_collection():
     return Database.get_collection("profiles")

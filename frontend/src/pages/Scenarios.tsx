@@ -14,17 +14,21 @@ import StrategyToggle from '@/components/ui/strategy-toggle';
 import ExplainabilitySection from '@/components/ui/explainability-section';
 import ConfidenceIndicator from '@/components/ui/confidence-indicator';
 import AlertBanner from '@/components/ui/alert-banner';
+import { ExportDialog } from '@/components/ExportDialog';
+import { MilestoneCelebration } from '@/components/MilestoneCelebration';
 import { calculatePayoffScenario, calculateTotalMinimumPayment } from '@/utils/debtCalculations';
 import { PayoffScenario, PayoffStrategy } from '@/types/debt';
 import { showSuccess, showError } from '@/utils/toast';
 import { useRecommendations } from '@/hooks/usePersonalization';
+import { trackPageView, trackEvent, checkMilestones } from '@/services/analyticsApi';
+import { getSessionId } from '@/services/sessionManager';
 
 const MAX_CUSTOM_SCENARIOS = 5;
 const MAX_COMPARISON_SCENARIOS = 3;
 
 const Scenarios = () => {
   const navigate = useNavigate();
-  const { debts, financialContext, scenarios, addScenario } = useDebt();
+  const { debts, financialContext, scenarios, addScenario, profileId } = useDebt();
   const [defaultScenarios, setDefaultScenarios] = useState<PayoffScenario[]>([]);
   const [customScenarios, setCustomScenarios] = useState<PayoffScenario[]>([]);
   const [selectedScenarios, setSelectedScenarios] = useState<string[]>([]);
@@ -43,7 +47,12 @@ const Scenarios = () => {
     }
 
     generateDefaultScenarios();
-  }, [debts]);
+    
+    // Track page view
+    if (profileId) {
+      trackPageView(profileId, 'Scenarios', getSessionId());
+    }
+  }, [debts, profileId]);
 
   useEffect(() => {
     if (recommendation && !recommendationLoading) {
@@ -126,6 +135,27 @@ const Scenarios = () => {
       setCustomScenarios([...customScenarios, customScenario]);
       addScenario(customScenario);
       showSuccess('Custom scenario created successfully');
+      
+      // Track analytics event
+      if (profileId) {
+        trackEvent({
+          profile_id: profileId,
+          event_type: 'scenario_created',
+          event_data: {
+            strategy: selectedStrategy,
+            monthly_payment: customPayment,
+            total_months: customScenario.totalMonths,
+            total_interest: customScenario.totalInterest,
+          },
+          session_id: getSessionId(),
+        });
+        
+        // Check for milestones
+        checkMilestones({
+          profile_id: profileId,
+          trigger_event: 'scenario_created',
+        });
+      }
     }
 
     setShowNameDialog(false);
@@ -217,6 +247,9 @@ const Scenarios = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50/30 to-teal-50/20">
+      {/* Milestone Celebration */}
+      {profileId && <MilestoneCelebration profileId={profileId} />}
+      
       {/* Header */}
       <header className="w-full bg-white/80 backdrop-blur-sm border-b border-gray-100">
         <div className="container mx-auto px-4 md:px-6">
@@ -227,14 +260,17 @@ const Scenarios = () => {
                 PathLight
               </h1>
             </div>
-            <Button
-              variant="outline"
-              onClick={() => navigate('/dashboard')}
-              className="border-[#D4DFE4] text-[#002B45] rounded-xl"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Dashboard
-            </Button>
+            <div className="flex items-center gap-3">
+              {profileId && <ExportDialog profileId={profileId} />}
+              <Button
+                variant="outline"
+                onClick={() => navigate('/dashboard')}
+                className="border-[#D4DFE4] text-[#002B45] rounded-xl"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Dashboard
+              </Button>
+            </div>
           </div>
         </div>
       </header>

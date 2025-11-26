@@ -1,0 +1,374 @@
+# Personalization Rules Configuration
+# This file contains rules for dynamic microcopy and contextual guidance
+# Implements BR-7 (Stress-Based Messaging)
+# Version: 1.0
+
+version: "1.0"
+last_updated: "2025-11-25"
+
+# Microcopy personalization rules
+microcopy:
+  # Dashboard welcome messages based on context
+  dashboard_welcome:
+    rules:
+      - condition:
+          stress_level: [4, 5]
+          debts_paid_count: 0
+        message: "You're taking the first step - that's what matters most."
+        tone: "supportive"
+        
+      - condition:
+          stress_level: [4, 5]
+          debts_paid_count: [1, 2, 3]
+        message: "You're making real progress. Keep going, one step at a time."
+        tone: "encouraging"
+        
+      - condition:
+          stress_level: [1, 2, 3]
+          debts_paid_count: 0
+        message: "Ready to crush your debt? Let's build your personalized plan."
+        tone: "motivational"
+        
+      - condition:
+          stress_level: [1, 2, 3]
+          debts_paid_count: [1, 2, 3, 4, 5]
+        message: "You're on fire! {debts_paid_count} debts down, keep the momentum going."
+        tone: "celebratory"
+        
+      - condition:
+          debts_paid_count: [6, 7, 8, 9, 10]
+        message: "Incredible progress! You've paid off {debts_paid_count} debts."
+        tone: "celebratory"
+        
+      - condition:
+          default: true
+        message: "Welcome back! Let's check on your progress."
+        tone: "neutral"
+  
+  # Payment strategy selection messaging
+  strategy_selection:
+    rules:
+      - condition:
+          stress_level: [4, 5]
+          small_debts_count: [2, 3, 4, 5]
+        message: "The Snowball method can give you quick wins to build confidence."
+        emphasis: "psychological_benefit"
+        
+      - condition:
+          stress_level: [4, 5]
+          small_debts_count: [0, 1]
+        message: "Focus on one debt at a time. You've got this."
+        emphasis: "simplicity"
+        
+      - condition:
+          primary_goal: "reduce-interest"
+        message: "The Avalanche method will save you the most money on interest."
+        emphasis: "financial_optimization"
+        
+      - condition:
+          primary_goal: "pay-faster"
+          interest_difference: [0, 500]
+        message: "Both strategies will get you debt-free quickly. Choose what feels right."
+        emphasis: "flexibility"
+        
+      - condition:
+          default: true
+        message: "We've analyzed your debts to recommend the best strategy for you."
+        emphasis: "personalization"
+  
+  # Progress milestone messages
+  milestones:
+    rules:
+      - condition:
+          milestone: "first_debt_paid"
+        message: "🎉 First debt eliminated! This is just the beginning."
+        celebration_level: "high"
+        
+      - condition:
+          milestone: "25_percent_paid"
+        message: "You're 25% of the way there. The momentum is building!"
+        celebration_level: "medium"
+        
+      - condition:
+          milestone: "50_percent_paid"
+        message: "Halfway to debt freedom! You're crushing it."
+        celebration_level: "high"
+        
+      - condition:
+          milestone: "75_percent_paid"
+        message: "75% complete! The finish line is in sight."
+        celebration_level: "high"
+        
+      - condition:
+          milestone: "all_debts_paid"
+        message: "🎊 DEBT FREE! You did it! Time to celebrate and plan your next financial goal."
+        celebration_level: "maximum"
+  
+  # Cash flow warnings
+  cash_flow_warnings:
+    rules:
+      - condition:
+          cash_flow_ratio: [0.0, 0.9]
+        message: "Your available payment is less than your minimums. Let's adjust your plan."
+        severity: "critical"
+        action: "reduce_payment_plan"
+        
+      - condition:
+          cash_flow_ratio: [0.9, 1.0]
+        message: "You're cutting it close. Consider building a small buffer."
+        severity: "warning"
+        action: "suggest_buffer"
+        
+      - condition:
+          cash_flow_ratio: [1.0, 1.1]
+        message: "Your payment plan is tight but manageable."
+        severity: "caution"
+        action: "monitor"
+        
+      - condition:
+          cash_flow_ratio: [1.1, 1.5]
+        message: "You have a healthy buffer for unexpected expenses."
+        severity: "good"
+        action: "none"
+        
+      - condition:
+          cash_flow_ratio: [1.5, 10.0]
+        message: "Great cash flow! Consider increasing your monthly payment."
+        severity: "excellent"
+        action: "suggest_increase"
+  
+  # Delinquency messaging (BR-7)
+  delinquency:
+    rules:
+      - condition:
+          has_delinquent: true
+          stress_level: [4, 5]
+        message: "Let's focus on getting current first. One step at a time."
+        tone: "supportive"
+        priority: "stabilize"
+        
+      - condition:
+          has_delinquent: true
+          stress_level: [1, 2, 3]
+        message: "Priority: Get current on delinquent accounts to avoid further fees."
+        tone: "direct"
+        priority: "urgent_action"
+        
+      - condition:
+          delinquent_count: [1, 2]
+        message: "Focus on bringing {delinquent_count} account(s) current."
+        tone: "actionable"
+        
+      - condition:
+          delinquent_count: [3, 4, 5]
+        message: "Multiple delinquent accounts detected. Consider debt counseling."
+        tone: "serious"
+        action: "suggest_counseling"
+
+# Next action prioritization rules
+next_actions:
+  # Action priority based on user context
+  priority_rules:
+    - condition:
+          profile_complete: false
+      actions:
+        - text: "Complete your financial profile"
+          priority: 1
+          category: "setup"
+          icon: "user"
+          
+    - condition:
+          debt_count: 0
+      actions:
+        - text: "Add your first debt"
+          priority: 1
+          category: "setup"
+          icon: "plus"
+        - text: "Import debts from CSV"
+          priority: 2
+          category: "setup"
+          icon: "upload"
+          
+    - condition:
+          has_delinquent: true
+      actions:
+        - text: "Review delinquent accounts"
+          priority: 1
+          category: "urgent"
+          icon: "alert"
+        - text: "Contact creditors to negotiate"
+          priority: 2
+          category: "urgent"
+          icon: "phone"
+          
+    - condition:
+          strategy_selected: false
+          debt_count: [1, 2, 3, 4, 5]
+      actions:
+        - text: "Choose your payoff strategy"
+          priority: 1
+          category: "planning"
+          icon: "target"
+        - text: "Compare Snowball vs Avalanche"
+          priority: 2
+          category: "planning"
+          icon: "compare"
+          
+    - condition:
+          cash_flow_ratio: [0.0, 1.0]
+      actions:
+        - text: "Adjust your payment plan"
+          priority: 1
+          category: "urgent"
+          icon: "edit"
+        - text: "Review your budget"
+          priority: 2
+          category: "planning"
+          icon: "calculator"
+          
+    - condition:
+          months_since_last_payment: [1, 2, 3]
+      actions:
+        - text: "Log your latest payment"
+          priority: 1
+          category: "tracking"
+          icon: "check"
+        - text: "Update debt balances"
+          priority: 2
+          category: "tracking"
+          icon: "refresh"
+          
+    - condition:
+          scenario_run_count: 0
+      actions:
+        - text: "Run your first scenario"
+          priority: 1
+          category: "planning"
+          icon: "play"
+        - text: "Try a what-if analysis"
+          priority: 2
+          category: "planning"
+          icon: "lightbulb"
+          
+    - condition:
+          default: true
+      actions:
+        - text: "Review your progress"
+          priority: 1
+          category: "tracking"
+          icon: "chart"
+        - text: "Explore what-if scenarios"
+          priority: 2
+          category: "planning"
+          icon: "lightbulb"
+        - text: "Get AI insights"
+          priority: 3
+          category: "insights"
+          icon: "sparkles"
+
+# Contextual help text
+contextual_help:
+  debt_entry:
+    rules:
+      - condition:
+          field: "minimum_payment"
+          apr: [0.0, 5.0]
+        help: "For low-interest debt, the minimum payment should cover at least the monthly interest."
+        
+      - condition:
+          field: "minimum_payment"
+          apr: [20.0, 100.0]
+        help: "High-interest debt requires higher minimum payments. We'll suggest an amount."
+        
+      - condition:
+          field: "apr"
+          value: [30.0, 100.0]
+        help: "⚠️ This APR is very high. Consider balance transfer or consolidation options."
+        
+      - condition:
+          field: "balance"
+          value: [0.0, 500.0]
+        help: "Small balances are great candidates for quick payoff!"
+        
+      - condition:
+          field: "balance"
+          value: [20000.0, 1000000.0]
+        help: "Large balances benefit most from the Avalanche strategy to minimize interest."
+  
+  strategy_selection:
+    rules:
+      - condition:
+          comparing: true
+          interest_difference: [0.0, 100.0]
+        help: "The strategies are very similar. Choose based on what motivates you."
+        
+      - condition:
+          comparing: true
+          interest_difference: [1000.0, 100000.0]
+        help: "There's a significant interest difference. Consider the Avalanche method."
+        
+      - condition:
+          comparing: true
+          time_difference: [12, 1000]
+        help: "One strategy is much faster. Consider if the time savings are worth it."
+
+# Tone and voice guidelines
+tone_guidelines:
+  stress_based:
+    high_stress:  # 4-5
+      - "Use shorter sentences"
+      - "Focus on immediate next steps"
+      - "Avoid overwhelming with options"
+      - "Emphasize progress over perfection"
+      - "Use supportive, non-judgmental language"
+      
+    medium_stress:  # 3
+      - "Balance encouragement with information"
+      - "Provide 2-3 options"
+      - "Acknowledge challenges"
+      - "Celebrate small wins"
+      
+    low_stress:  # 1-2
+      - "Can be more detailed and analytical"
+      - "Provide multiple options"
+      - "Focus on optimization"
+      - "Use motivational language"
+  
+  goal_based:
+    pay-faster:
+      - "Emphasize time savings"
+      - "Highlight momentum"
+      - "Use action-oriented language"
+      
+    reduce-interest:
+      - "Focus on dollar savings"
+      - "Provide calculations"
+      - "Emphasize long-term benefits"
+      
+    lower-payment:
+      - "Highlight cash flow relief"
+      - "Emphasize flexibility"
+      - "Focus on sustainability"
+      
+    avoid-default:
+      - "Prioritize stability"
+      - "Focus on immediate actions"
+      - "Provide clear, simple steps"
+
+# A/B testing configuration
+ab_testing:
+  enabled: false
+  tests:
+    - name: "welcome_message_tone"
+      variants:
+        - id: "supportive"
+          weight: 0.5
+        - id: "motivational"
+          weight: 0.5
+      
+    - name: "milestone_celebration"
+      variants:
+        - id: "emoji_heavy"
+          weight: 0.5
+        - id: "text_only"
+          weight: 0.5

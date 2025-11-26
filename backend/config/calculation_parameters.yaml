@@ -1,0 +1,125 @@
+# Calculation Parameters Configuration
+# This file contains configurable parameters for debt payoff calculations
+# Version: 1.0
+
+version: "1.0"
+last_updated: "2025-11-25"
+
+# Interest calculation parameters
+interest:
+  # Compound frequency (monthly for most consumer debts)
+  compound_frequency: "monthly"
+  
+  # Minimum interest threshold (debts with interest below this are treated as 0%)
+  minimum_threshold: 0.01
+  
+  # Maximum reasonable APR (for validation warnings)
+  high_apr_warning_threshold: 30.0
+  
+  # Very high APR threshold (potential predatory lending)
+  very_high_apr_threshold: 50.0
+
+# Minimum payment validation (BR-1)
+minimum_payment:
+  # Minimum payment must cover at least this percentage of monthly interest
+  interest_coverage_ratio: 1.0
+  
+  # Suggested minimum payment calculation
+  suggested_calculation:
+    # Add this percentage of balance to monthly interest
+    balance_percentage: 0.01
+    
+    # Or this fixed amount, whichever is greater
+    minimum_principal_payment: 25.0
+  
+  # Warning thresholds
+  warnings:
+    # Warn if minimum payment is less than this multiple of monthly interest
+    low_payment_threshold: 1.1
+    
+    # Warn if payoff time exceeds this many years
+    long_payoff_warning_years: 30
+
+# Payoff strategy parameters (BR-2)
+strategies:
+  snowball:
+    name: "Debt Snowball"
+    description: "Pay off smallest balances first for psychological wins"
+    sort_by: "balance"
+    sort_order: "ascending"
+    
+  avalanche:
+    name: "Debt Avalanche"
+    description: "Pay off highest interest rates first to minimize total interest"
+    sort_by: "apr"
+    sort_order: "descending"
+    
+  custom:
+    name: "Custom Order"
+    description: "User-defined debt payoff order"
+    sort_by: "custom"
+
+# Optimization parameters
+optimization:
+  # Binary search parameters for payment optimization
+  binary_search:
+    max_iterations: 50
+    tolerance_dollars: 1.0
+    
+  # Target months tolerance (within this many months is acceptable)
+  target_months_tolerance: 1
+  
+  # Suggested payment increase over minimums
+  suggested_increase_percentage: 0.20  # 20% more than minimums
+  
+  # Maximum reasonable monthly payment (as percentage of total debt)
+  max_payment_percentage: 1.0  # 100% of total debt per month
+
+# Scenario simulation limits
+simulation:
+  # Maximum months to simulate (safety limit)
+  max_months: 600  # 50 years
+  
+  # Minimum months for a valid scenario
+  min_months: 1
+  
+  # Floating point tolerance for balance comparisons
+  balance_tolerance: 0.01
+  
+  # Maximum number of debts to process
+  max_debts: 50
+
+# What-if analysis parameters
+what_if:
+  # Balance transfer fee range
+  balance_transfer:
+    typical_fee_percentage: 3.0
+    min_fee_percentage: 0.0
+    max_fee_percentage: 5.0
+    
+  # Consolidation parameters
+  consolidation:
+    # Typical APR reduction for consolidation
+    typical_apr_reduction: 5.0
+    
+    # Minimum debts to consolidate
+    min_debts_to_consolidate: 2
+    
+  # Extra payment parameters
+  extra_payment:
+    # Minimum extra payment amount
+    min_amount: 10.0
+    
+    # Maximum extra payment (as percentage of total debt)
+    max_percentage: 0.5  # 50% of total debt
+
+# Performance and caching
+performance:
+  # Cache scenario results for this many seconds
+  cache_ttl_seconds: 300  # 5 minutes
+  
+  # Maximum schedule items to return (for very long payoff periods)
+  max_schedule_items: 1000
+  
+  # Batch size for processing large debt lists
+  batch_size: 100

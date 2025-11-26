@@ -1,0 +1,272 @@
+# AI Prompt Templates Configuration
+# This file contains structured prompts for AI-powered features
+# Version: 1.0
+
+version: "1.0"
+last_updated: "2025-11-25"
+
+# System prompts for different AI features
+system_prompts:
+  insights:
+    role: "You are a compassionate financial advisor specializing in debt management. Your goal is to provide clear, actionable insights that help users understand their debt situation and feel empowered to take action."
+    guidelines:
+      - "Be empathetic and non-judgmental"
+      - "Focus on actionable advice"
+      - "Use simple, clear language"
+      - "Highlight positive progress and opportunities"
+      - "Avoid financial jargon unless necessary"
+      - "Be realistic but encouraging"
+    
+  ask:
+    role: "You are a knowledgeable financial advisor answering questions about debt management, payoff strategies, and personal finance. Provide accurate, helpful information tailored to the user's specific situation."
+    guidelines:
+      - "Answer questions directly and concisely"
+      - "Reference the user's specific debt data when relevant"
+      - "Provide examples when helpful"
+      - "Suggest follow-up actions"
+      - "Admit when you don't know something"
+      - "Never provide investment advice or tax guidance"
+    
+  onboarding:
+    role: "You are a friendly financial coach helping someone get started with debt management. Your goal is to gather information about their debts and financial situation in a conversational, supportive way."
+    guidelines:
+      - "Be warm and welcoming"
+      - "Ask one question at a time"
+      - "Validate and acknowledge their responses"
+      - "Explain why you're asking each question"
+      - "Make the process feel collaborative, not interrogative"
+      - "Celebrate their decision to take control of their debt"
+
+# Prompt templates for insights generation
+insights_templates:
+  debt_overview:
+    template: |
+      Analyze this debt portfolio and provide 3-4 key insights:
+      
+      Total Debt: ${total_debt}
+      Number of Debts: {debt_count}
+      Highest APR: {highest_apr}%
+      Lowest APR: {lowest_apr}%
+      Total Monthly Minimum: ${total_minimum}
+      Available Monthly Payment: ${available_payment}
+      Primary Goal: {primary_goal}
+      Stress Level: {stress_level}/5
+      
+      Debts:
+      {debt_list}
+      
+      Focus on:
+      1. Overall debt health assessment
+      2. Biggest opportunities for improvement
+      3. Potential risks or concerns
+      4. Recommended next steps
+      
+      Format your response as a JSON object with this structure:
+      {{
+        "summary": "One sentence overview",
+        "insights": ["insight 1", "insight 2", "insight 3"],
+        "opportunities": ["opportunity 1", "opportunity 2"],
+        "risks": ["risk 1", "risk 2"],
+        "next_actions": ["action 1", "action 2", "action 3"]
+      }}
+    
+  strategy_comparison:
+    template: |
+      Compare these two debt payoff strategies and explain which is better for this user:
+      
+      User Profile:
+      - Primary Goal: {primary_goal}
+      - Stress Level: {stress_level}/5
+      - Available Monthly Payment: ${available_payment}
+      
+      Snowball Strategy:
+      - Time to Payoff: {snowball_months} months
+      - Total Interest: ${snowball_interest}
+      - First Debt Paid: {snowball_first_debt}
+      
+      Avalanche Strategy:
+      - Time to Payoff: {avalanche_months} months
+      - Total Interest: ${avalanche_interest}
+      - First Debt Paid: {avalanche_first_debt}
+      
+      Provide a clear recommendation with reasoning. Format as JSON:
+      {{
+        "recommended_strategy": "snowball" or "avalanche",
+        "reasoning": "2-3 sentence explanation",
+        "trade_offs": "What they're giving up with this choice",
+        "confidence": "high" or "medium" or "low"
+      }}
+  
+  progress_celebration:
+    template: |
+      The user has made progress on their debt payoff journey:
+      
+      - Debts Paid Off: {debts_paid_count}
+      - Total Paid: ${total_paid}
+      - Remaining Debt: ${remaining_debt}
+      - Months Since Start: {months_elapsed}
+      
+      Generate an encouraging message that:
+      1. Celebrates their specific achievement
+      2. Puts their progress in perspective
+      3. Motivates them to continue
+      
+      Format as JSON:
+      {{
+        "celebration": "Celebratory message",
+        "perspective": "Context about their progress",
+        "motivation": "Encouraging next step"
+      }}
+
+# Prompt templates for Q&A
+qa_templates:
+  general_question:
+    template: |
+      User Question: {question}
+      
+      User Context:
+      - Total Debt: ${total_debt}
+      - Number of Debts: {debt_count}
+      - Primary Goal: {primary_goal}
+      - Current Strategy: {current_strategy}
+      
+      Provide a helpful, accurate answer that:
+      1. Directly addresses their question
+      2. References their specific situation when relevant
+      3. Suggests actionable next steps if applicable
+      
+      Format as JSON:
+      {{
+        "answer": "Direct answer to the question",
+        "context": "How this applies to their situation",
+        "next_steps": ["action 1", "action 2"],
+        "related_topics": ["topic 1", "topic 2"]
+      }}
+  
+  strategy_question:
+    template: |
+      User Question: {question}
+      
+      Current Strategy: {current_strategy}
+      Alternative Strategy: {alternative_strategy}
+      
+      Strategy Comparison:
+      {strategy_comparison}
+      
+      Answer their question about debt payoff strategies, referencing the specific comparison data.
+      
+      Format as JSON:
+      {{
+        "answer": "Clear explanation",
+        "recommendation": "Specific advice based on their data",
+        "trade_offs": "What to consider"
+      }}
+
+# Prompt templates for conversational onboarding
+onboarding_templates:
+  welcome:
+    template: |
+      Generate a warm welcome message for a new user starting their debt payoff journey.
+      
+      Format as JSON:
+      {{
+        "message": "Welcome message",
+        "next_question": "First question to ask"
+      }}
+  
+  collect_debt_info:
+    template: |
+      The user has provided: {previous_info}
+      
+      Generate the next question to collect debt information. Be conversational and supportive.
+      
+      Still need to collect:
+      {missing_fields}
+      
+      Format as JSON:
+      {{
+        "message": "Conversational transition",
+        "question": "Next question to ask",
+        "help_text": "Why you're asking this"
+      }}
+  
+  summarize_and_confirm:
+    template: |
+      The user has provided this information:
+      {collected_info}
+      
+      Generate a summary and ask for confirmation before proceeding.
+      
+      Format as JSON:
+      {{
+        "summary": "Clear summary of what they've shared",
+        "confirmation_question": "Ask if everything looks correct",
+        "edit_prompt": "How they can make changes"
+      }}
+
+# Response validation rules
+response_validation:
+  required_fields:
+    insights:
+      - "summary"
+      - "insights"
+      - "next_actions"
+    
+    ask:
+      - "answer"
+    
+    onboarding:
+      - "message"
+  
+  max_lengths:
+    summary: 200
+    insight: 150
+    answer: 500
+    message: 300
+  
+  array_limits:
+    insights: 5
+    opportunities: 3
+    risks: 3
+    next_actions: 5
+    related_topics: 4
+
+# Fallback responses (when AI fails or is unavailable)
+fallback_responses:
+  insights:
+    summary: "Your debt portfolio has been analyzed."
+    insights:
+      - "Focus on paying off high-interest debts first to minimize total interest"
+      - "Consider the debt snowball method if you need quick wins for motivation"
+      - "Review your budget to find opportunities for extra payments"
+    next_actions:
+      - "Review your recommended payoff strategy"
+      - "Set up automatic payments to stay on track"
+      - "Check back monthly to monitor your progress"
+  
+  ask:
+    answer: "I'm having trouble generating a response right now. Please try rephrasing your question or contact support for assistance."
+  
+  onboarding:
+    message: "Welcome! Let's get started by adding your debts. You can enter them manually or import from a CSV file."
+
+# Safety and content filtering
+safety:
+  blocked_topics:
+    - "Investment advice"
+    - "Tax preparation"
+    - "Legal advice"
+    - "Bankruptcy proceedings"
+    - "Credit repair schemes"
+  
+  warning_phrases:
+    - "I cannot provide investment advice"
+    - "Please consult a tax professional"
+    - "Consider speaking with a licensed attorney"
+    - "This is educational information only"
+  
+  content_filters:
+    - "Remove any personally identifiable information"
+    - "Avoid specific product recommendations"
+    - "Don't guarantee specific outcomes"
+    - "Include appropriate disclaimers"

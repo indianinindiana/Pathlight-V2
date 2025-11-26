@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDebt } from '@/context/DebtContext';
 import { Button } from '@/components/ui/button';
@@ -10,14 +10,19 @@ import DebtEntryForm from '@/components/DebtEntryForm';
 import AlertBanner from '@/components/ui/alert-banner';
 import NextActionCard from '@/components/ui/next-action-card';
 import ConfidenceIndicator from '@/components/ui/confidence-indicator';
+import { ExportDialog } from '@/components/ExportDialog';
+import { MilestoneCelebration } from '@/components/MilestoneCelebration';
+import { MilestoneProgress } from '@/components/MilestoneProgress';
 import { Debt } from '@/types/debt';
 import { calculateTotalDebt, calculateTotalMinimumPayment, calculateDebtToIncome } from '@/utils/debtCalculations';
 import { showSuccess } from '@/utils/toast';
 import { usePersonalization, useNextBestActions, useConfidenceScore } from '@/hooks/usePersonalization';
+import { trackPageView } from '@/services/analyticsApi';
+import { getSessionId } from '@/services/sessionManager';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { debts, financialContext, addDebt, updateDebt, deleteDebt } = useDebt();
+  const { debts, financialContext, addDebt, updateDebt, deleteDebt, profileId } = useDebt();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingDebt, setEditingDebt] = useState<Debt | null>(null);
 
@@ -25,6 +30,13 @@ const Dashboard = () => {
   const { alerts } = usePersonalization();
   const { actions, isLoading: actionsLoading } = useNextBestActions();
   const { confidence } = useConfidenceScore();
+
+  // Track page view on mount
+  useEffect(() => {
+    if (profileId) {
+      trackPageView(profileId, 'Dashboard', getSessionId());
+    }
+  }, [profileId]);
 
   if (debts.length === 0 && !showAddForm) {
     navigate('/debt-entry');
@@ -84,6 +96,9 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50/30 to-teal-50/20">
+      {/* Milestone Celebration */}
+      {profileId && <MilestoneCelebration profileId={profileId} />}
+
       {/* Header */}
       <header className="w-full bg-white/80 backdrop-blur-sm border-b border-gray-100">
         <div className="container mx-auto px-4 md:px-6">
@@ -94,13 +109,16 @@ const Dashboard = () => {
                 PathLight
               </h1>
             </div>
-            {confidence && (
-              <ConfidenceIndicator
-                level={confidence.level}
-                factors={confidence.factors}
-                explanation={confidence.suggestions[0]}
-              />
-            )}
+            <div className="flex items-center gap-3">
+              {profileId && <ExportDialog profileId={profileId} />}
+              {confidence && (
+                <ConfidenceIndicator
+                  level={confidence.level}
+                  factors={confidence.factors}
+                  explanation={confidence.suggestions[0]}
+                />
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -209,6 +227,13 @@ const Dashboard = () => {
             icon={PiggyBank}
             iconColor={emergencySavingsRatio >= 3 ? '#10B981' : emergencySavingsRatio >= 1 ? '#EAB308' : '#EF4444'}
           />
+          
+          {/* Milestone Progress Card */}
+          {profileId && (
+            <div className="lg:col-span-2">
+              <MilestoneProgress profileId={profileId} />
+            </div>
+          )}
         </div>
 
         {/* Visualizations */}

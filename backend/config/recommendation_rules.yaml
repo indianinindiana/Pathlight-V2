@@ -1,0 +1,211 @@
+# Recommendation Rules Configuration
+# This file contains rules for strategy recommendations and confidence scoring
+# Implements BR-2 (Strategy Selection) and BR-3 (Confidence Scoring)
+# Version: 1.0
+
+version: "1.0"
+last_updated: "2025-11-25"
+
+# Strategy recommendation rules (BR-2)
+strategy_selection:
+  # Rules based on primary goal
+  goals:
+    pay-faster:
+      # Prioritize speed
+      primary_factor: "time_to_payoff"
+      secondary_factor: "total_interest"
+      
+      # If time difference is less than this, consider psychological factors
+      time_difference_threshold_months: 3
+      
+      # High stress users benefit from snowball even if slower
+      high_stress_override:
+        enabled: true
+        stress_threshold: 4
+        min_small_debts: 2
+        small_debt_threshold: 2000
+      
+    reduce-interest:
+      # Always prioritize interest savings
+      primary_factor: "total_interest"
+      secondary_factor: "time_to_payoff"
+      
+      # Always recommend avalanche for this goal
+      force_avalanche: true
+      
+    lower-payment:
+      # Prioritize psychological wins and cash flow relief
+      primary_factor: "quick_wins"
+      secondary_factor: "total_interest"
+      
+      # Prefer snowball if multiple small debts exist
+      small_debt_threshold: 2000
+      min_small_debts_for_snowball: 2
+      
+    avoid-default:
+      # High stress situation - need momentum
+      primary_factor: "psychological_momentum"
+      secondary_factor: "sustainability"
+      
+      # Always prefer snowball for this goal unless no small debts
+      prefer_snowball: true
+      fallback_to_avalanche_if_no_small_debts: true
+  
+  # Thresholds for strategy comparison
+  comparison:
+    # Interest difference thresholds (in dollars)
+    significant_interest_difference: 500
+    very_significant_interest_difference: 1000
+    
+    # Time difference thresholds (in months)
+    significant_time_difference: 6
+    very_significant_time_difference: 12
+    
+    # If differences are below these, strategies are considered "similar"
+    similar_interest_threshold: 100
+    similar_time_threshold: 3
+  
+  # Debt composition analysis
+  debt_analysis:
+    # Small debt threshold for snowball consideration
+    small_debt_balance: 2000
+    
+    # Large debt threshold
+    large_debt_balance: 20000
+    
+    # High APR threshold
+    high_apr: 20.0
+    
+    # Very high APR threshold (predatory)
+    very_high_apr: 30.0
+
+# Confidence scoring rules (BR-3)
+confidence_scoring:
+  # Base confidence from profile completeness
+  profile_completeness:
+    weight: 0.40  # 40% of confidence score
+    
+    # Minimum completeness for high confidence
+    high_confidence_threshold: 0.80
+    
+    # Minimum completeness for medium confidence
+    medium_confidence_threshold: 0.60
+  
+  # Debt complexity factors
+  debt_complexity:
+    weight: 0.20  # 20% of confidence score
+    
+    # Reduce confidence based on number of debts
+    thresholds:
+      - debt_count: 5
+        multiplier: 1.0  # No reduction
+      - debt_count: 10
+        multiplier: 0.9  # 10% reduction
+      - debt_count: 15
+        multiplier: 0.8  # 20% reduction
+      - debt_count: 20
+        multiplier: 0.7  # 30% reduction
+  
+  # Delinquency impact
+  delinquency:
+    weight: 0.20  # 20% of confidence score
+    
+    # Multiplier if any debts are delinquent
+    has_delinquent_multiplier: 0.7  # 30% reduction
+    
+    # Additional reduction per delinquent debt
+    per_delinquent_reduction: 0.05  # 5% per debt
+  
+  # Cash flow adequacy
+  cash_flow:
+    weight: 0.20  # 20% of confidence score
+    
+    # Cash flow ratio thresholds (available cash / total minimums)
+    thresholds:
+      - ratio: 1.5
+        multiplier: 1.0  # Excellent cash flow
+      - ratio: 1.2
+        multiplier: 0.95  # Good cash flow
+      - ratio: 1.1
+        multiplier: 0.85  # Adequate cash flow
+      - ratio: 1.0
+        multiplier: 0.75  # Tight cash flow
+      - ratio: 0.9
+        multiplier: 0.60  # Insufficient cash flow
+  
+  # Strategy clarity (how different are the strategies)
+  strategy_clarity:
+    # Bonus for clear winner
+    clear_winner_bonus: 0.05  # 5% bonus
+    
+    # Penalty for very similar strategies
+    similar_strategies_penalty: 0.05  # 5% penalty
+    
+    # Thresholds for "clear winner"
+    clear_winner_thresholds:
+      interest_difference: 1000  # $1000+ difference
+      time_difference: 12  # 12+ months difference
+  
+  # Overall confidence levels
+  levels:
+    high:
+      min_score: 80
+      label: "High Confidence"
+      description: "Strong recommendation based on complete information"
+      
+    medium:
+      min_score: 60
+      label: "Medium Confidence"
+      description: "Good recommendation but some information is missing"
+      
+    low:
+      min_score: 0
+      label: "Low Confidence"
+      description: "Limited information available for recommendation"
+
+# Recommendation messaging
+messaging:
+  # Templates for different scenarios
+  templates:
+    clear_avalanche:
+      title: "Avalanche Strategy Recommended"
+      summary: "Save money by paying off high-interest debts first"
+      
+    clear_snowball:
+      title: "Snowball Strategy Recommended"
+      summary: "Build momentum by eliminating small debts quickly"
+      
+    similar_strategies:
+      title: "Both Strategies Are Effective"
+      summary: "Choose based on your personal preference"
+      
+    high_stress_snowball:
+      title: "Snowball Strategy for Quick Wins"
+      summary: "Given your stress level, quick wins will help maintain motivation"
+      
+    interest_focused:
+      title: "Minimize Interest with Avalanche"
+      summary: "This strategy directly addresses your goal to reduce interest"
+  
+  # Factors to highlight in recommendations
+  highlight_factors:
+    - "Total interest savings"
+    - "Time to debt freedom"
+    - "Monthly payment amount"
+    - "Number of quick wins"
+    - "Psychological momentum"
+    - "Cash flow impact"
+
+# A/B testing and experimentation
+experimentation:
+  enabled: false
+  
+  # Percentage of users to show alternative recommendations
+  test_percentage: 0.10  # 10%
+  
+  # Track these metrics for comparison
+  metrics:
+    - "user_satisfaction"
+    - "recommendation_followed"
+    - "debt_payoff_success"
+    - "time_to_first_debt_payoff"

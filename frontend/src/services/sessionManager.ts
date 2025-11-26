@@ -135,3 +135,37 @@ export function updateSessionTimestamp(): void {
     console.error('Error updating session timestamp:', error);
   }
 }
+
+/**
+ * Get or create a session ID for analytics tracking
+ * This is separate from userId and is used for tracking user sessions
+ */
+export function getSessionId(): string {
+  const SESSION_ID_KEY = 'sessionId';
+  const SESSION_DURATION = 30 * 60 * 1000; // 30 minutes
+  
+  try {
+    const stored = sessionStorage.getItem(SESSION_ID_KEY);
+    if (stored) {
+      const { id, timestamp } = JSON.parse(stored);
+      const now = Date.now();
+      
+      // Check if session is still valid
+      if (now - timestamp < SESSION_DURATION) {
+        return id;
+      }
+    }
+    
+    // Create new session
+    const newSessionId = generateUUID();
+    sessionStorage.setItem(SESSION_ID_KEY, JSON.stringify({
+      id: newSessionId,
+      timestamp: Date.now()
+    }));
+    
+    return newSessionId;
+  } catch (error) {
+    console.error('Error managing session ID:', error);
+    return generateUUID();
+  }
+}

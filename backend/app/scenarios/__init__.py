@@ -1,0 +1,1 @@
+"""Scenarios module for debt payoff simulation and recommendations."""
