@@ -10,6 +10,7 @@ from typing import Dict, Any, Optional, List
 from pathlib import Path
 
 from .llm_provider import LLMProviderFactory
+from .clara_fallbacks import get_clara_fallback, get_resume_message
 from .ai_models import (
     InsightsResponse, InsightsResponseContent,
     QAResponse, QAResponseContent,
@@ -102,6 +103,10 @@ class AIPromptConfig:
         except Exception as e:
             logger.error(f"Error getting fallback for {response_type}: {e}")
             return get_fallback_response(response_type)
+    
+    def get_config(self) -> Dict[str, Any]:
+        """Get the full configuration dictionary"""
+        return self._config or {}
 
 
 # ============================================================================
@@ -380,6 +385,74 @@ class AIService:
             fallback = self.config.get_fallback_response("onboarding")
             content = OnboardingResponseContent(**fallback)
             return OnboardingResponse(response=content)
+    
+    async def generate_onboarding_reaction(
+        self,
+        step_id: str,
+        user_answers: Dict[str, Any],
+        is_resume: bool = False
+    ) -> str:
+        """
+        Generate Clara's empathetic reaction to user's onboarding answer.
+        
+        Args:
+            step_id: ID of the question just answered
+            user_answers: All answers collected so far
+            is_resume: Whether this is a session resume
+        
+        Returns:
+            Clara's empathetic message (1-2 sentences)
+        """
+        try:
+            # Get prompt template
+            template = self.config.get_prompt_template("onboarding", "onboarding_reaction")
+            
+            # Add is_resume to user_answers for template processing
+            answers_with_context = {**user_answers, "is_resume": is_resume}
+            
+            # Fill in template
+            import json
+            prompt = template.format(
+                user_answers=json.dumps(answers_with_context, indent=2),
+                step_id=step_id
+            )
+            
+            # Get system prompt
+            system_prompt = self.config.get_system_prompt("onboarding_reaction")
+            
+            # Generate response (plain text, not JSON)
+            response_text = await self.provider.generate_text(
+                prompt=prompt,
+                system_prompt=system_prompt,
+                temperature=0.8,
+                max_tokens=150  # Keep it short
+            )
+            
+            # Sanitize and validate
+            clara_message = sanitize_ai_content(response_text)
+            
+            # Ensure it's not too long (max 2 sentences)
+            sentence_count = clara_message.count('.') + clara_message.count('!') + clara_message.count('?')
+            if sentence_count > 2:
+                # Truncate to first 2 sentences
+                sentences = []
+                for char in ['.', '!', '?']:
+                    if char in clara_message:
+                        parts = clara_message.split(char)
+                        for i, part in enumerate(parts[:2]):
+                            if part.strip():
+                                sentences.append(part.strip() + char)
+                        break
+                clara_message = ' '.join(sentences[:2])
+            
+            return clara_message
+                
+        except Exception as e:
+            logger.error(f"Error generating onboarding reaction: {e}")
+            # Use context-aware fallback message
+            if is_resume:
+                return get_resume_message()
+            return get_clara_fallback(step_id, user_answers)
     
     def reload_config(self):
         """Reload AI prompt configuration"""

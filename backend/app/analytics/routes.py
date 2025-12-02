@@ -18,7 +18,7 @@ from .models import (
 from .service import get_analytics_service
 from ..shared.database import get_database
 
-router = APIRouter(prefix="/analytics", tags=["Analytics"])
+router = APIRouter(prefix="/api/v1/analytics", tags=["Analytics"])
 logger = logging.getLogger(__name__)
 
 

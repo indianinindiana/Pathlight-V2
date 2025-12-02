@@ -102,10 +102,22 @@ class GeminiProvider(LLMProvider):
             if json_mode:
                 generation_config["response_mime_type"] = "application/json"
             
+            # Configure safety settings to be less restrictive for financial content
+            # Use the actual enum values from the SDK
+            from google.generativeai.types import HarmCategory, HarmBlockThreshold
+            
+            safety_settings = {
+                HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+            }
+            
             # Generate response
             response = self.client.generate_content(
                 full_prompt,
-                generation_config=generation_config
+                generation_config=generation_config,
+                safety_settings=safety_settings
             )
             
             return response.text

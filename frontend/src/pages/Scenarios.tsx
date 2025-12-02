@@ -16,6 +16,7 @@ import ConfidenceIndicator from '@/components/ui/confidence-indicator';
 import AlertBanner from '@/components/ui/alert-banner';
 import { ExportDialog } from '@/components/ExportDialog';
 import { MilestoneCelebration } from '@/components/MilestoneCelebration';
+import { AIStrategyComparison } from '@/components/AIStrategyComparison';
 import { calculatePayoffScenario, calculateTotalMinimumPayment } from '@/utils/debtCalculations';
 import { PayoffScenario, PayoffStrategy } from '@/types/debt';
 import { showSuccess, showError } from '@/utils/toast';
@@ -255,7 +256,7 @@ const Scenarios = () => {
         <div className="container mx-auto px-4 md:px-6">
           <div className="flex items-center justify-between py-5 md:py-6">
             <div className="flex items-center cursor-pointer" onClick={() => navigate('/')}>
-              <img src="/pathlight-logo.svg" alt="PathLight" className="w-8 h-8 md:w-10 md:h-10 mr-2.5" />
+              <img src="/pathlight-logo.png" alt="PathLight" className="w-8 h-8 md:w-10 md:h-10 mr-2.5" />
               <h1 className="text-[20px] md:text-[24px] font-bold text-[#002B45] tracking-tight" style={{ letterSpacing: '-0.5%' }}>
                 PathLight
               </h1>
@@ -486,6 +487,29 @@ const Scenarios = () => {
         <p className="text-sm text-[#4F6A7A] mb-8">
           Click on scenarios to select them for comparison (selected: {selectedScenarios.length}/{MAX_COMPARISON_SCENARIOS})
         </p>
+
+        {/* Clara AI Strategy Comparison */}
+        {profileId && defaultScenarios.length >= 2 && (
+          <div className="mb-8">
+            <AIStrategyComparison
+              profileId={profileId}
+              snowballData={{
+                total_months: defaultScenarios[0].totalMonths,
+                total_interest: defaultScenarios[0].totalInterest,
+                first_debt_paid: defaultScenarios[0].debtOrder[0]?.name || 'First debt'
+              }}
+              avalancheData={{
+                total_months: defaultScenarios[1].totalMonths,
+                total_interest: defaultScenarios[1].totalInterest,
+                first_debt_paid: defaultScenarios[1].debtOrder[0]?.name || 'First debt'
+              }}
+              onStrategySelect={(strategy) => {
+                setSelectedStrategy(strategy);
+                showSuccess(`Switched to ${strategy} strategy`);
+              }}
+            />
+          </div>
+        )}
 
         {/* Comparison Section */}
         {selectedScenarioObjects.length >= 2 && (

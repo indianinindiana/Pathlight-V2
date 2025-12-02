@@ -173,11 +173,63 @@ class QARequest(BaseModel):
 
 
 class OnboardingRequest(BaseModel):
-    """Request model for onboarding conversation"""
+    """Request model for onboarding conversation (legacy)"""
     session_id: str = Field(..., description="Onboarding session ID")
     user_input: Optional[str] = Field(default=None, description="User's response")
     collected_data: Optional[Dict[str, Any]] = Field(default=None, description="Data collected so far")
     step: Optional[str] = Field(default=None, description="Current onboarding step")
+
+
+class OnboardingReactionRequest(BaseModel):
+    """Request model for reactive onboarding (Sprint 2)"""
+    session_id: str = Field(..., description="Onboarding session ID")
+    step_id: str = Field(..., description="ID of the question just answered")
+    user_answers: Dict[str, Any] = Field(..., description="All answers collected so far")
+    is_resume: bool = Field(default=False, description="Whether this is a session resume")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "session_id": "user-session-uuid",
+                "step_id": "stressLevel",
+                "user_answers": {
+                    "moneyGoal": "pay-faster",
+                    "stressLevel": 5
+                },
+                "is_resume": False
+            }
+        }
+
+
+class OnboardingReactionResponse(BaseModel):
+    """Response model for reactive onboarding (Sprint 2)"""
+    schema_version: str = Field(default="1.1", description="Schema version")
+    request_id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique request ID")
+    timestamp: datetime = Field(default_factory=datetime.utcnow, description="Response timestamp")
+    clara_message: str = Field(..., max_length=300, description="Clara's empathetic reaction (max 2 sentences)")
+    validation_error: Optional[str] = Field(default=None, description="Validation error if any")
+    
+    @validator('clara_message')
+    def validate_message_length(cls, v):
+        """Ensure message is concise (max 2 sentences)"""
+        if not v or len(v.strip()) == 0:
+            raise ValueError("Clara message cannot be empty")
+        # Count sentences (rough approximation)
+        sentence_count = v.count('.') + v.count('!') + v.count('?')
+        if sentence_count > 2:
+            raise ValueError(f"Message too long: {sentence_count} sentences (max 2)")
+        return v.strip()
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "schema_version": "1.1",
+                "request_id": "123e4567-e89b-12d3-a456-426614174000",
+                "timestamp": "2025-11-29T19:00:00Z",
+                "clara_message": "Thank you for sharing that. It's completely understandable to feel significant stress in this situation.",
+                "validation_error": None
+            }
+        }
 
 
 class StrategyComparisonRequest(BaseModel):

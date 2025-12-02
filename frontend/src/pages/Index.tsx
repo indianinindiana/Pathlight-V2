@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDebt } from '@/context/DebtContext';
 import { Button } from '@/components/ui/button';
-import { Zap, Calendar, Percent, Shield, Lock, Clock, Heart, DollarSign, ArrowRight, RefreshCw, Check } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Zap, Calendar, Percent, Shield, Lock, Clock, Heart, DollarSign, ArrowRight, RefreshCw, Check, Sparkles } from 'lucide-react';
 import { PayoffGoal } from '@/types/debt';
 
 const Index = () => {
@@ -41,7 +42,7 @@ const Index = () => {
     if (onboardingComplete) {
       navigate('/debt-entry');
     } else {
-      navigate('/onboarding', { state: { selectedGoal } });
+      navigate('/onboarding-clara', { state: { selectedGoal } });
     }
   };
 
@@ -58,7 +59,7 @@ const Index = () => {
       <header className="w-full bg-white/80 backdrop-blur-sm border-b border-gray-100">
         <div className="container mx-auto px-4 md:px-6">
           <div className="flex items-center py-5 md:py-6">
-            <img src="/pathlight-logo.svg" alt="PathLight" className="w-8 h-8 md:w-10 md:h-10 mr-2.5" />
+            <img src="/pathlight-logo.png" alt="PathLight" className="w-8 h-8 md:w-10 md:h-10 mr-2.5" />
             <h1 className="text-[20px] md:text-[24px] font-bold text-[#002B45] tracking-tight" style={{ letterSpacing: '-0.5%' }}>
               PathLight
             </h1>
@@ -67,50 +68,73 @@ const Index = () => {
       </header>
 
       {/* Hero Section */}
-      <div className="container mx-auto px-4 py-12 md:py-20">
-        <div className="max-w-[650px] mx-auto text-center mb-12 md:mb-16">
-          <h2 className="text-[28px] md:text-[44px] font-bold text-[#002B45] leading-[1.2] mb-4 md:mb-6">
+      <div className="container mx-auto px-4 py-6 md:py-12">
+        <div className="max-w-[650px] mx-auto text-center mb-6 md:mb-10">
+          <h2 className="text-[26px] md:text-[40px] font-bold text-[#002B45] leading-[1.2] mb-3 md:mb-5">
             See your clearest path out of debt.
           </h2>
-          <p className="text-[18px] md:text-[20px] text-[#3A4F61] font-normal max-w-[620px] mx-auto leading-relaxed">
+          <p className="text-[16px] md:text-[18px] text-[#3A4F61] font-normal max-w-[620px] mx-auto leading-relaxed">
             Get your instant debt snapshot with AI-powered personalized guidance
           </p>
         </div>
 
-        {/* Goal Selection Section */}
+        {/* Meet Clara Card - Compact Version */}
+        {!onboardingComplete && (
+          <Card className="max-w-2xl mx-auto mb-6 md:mb-8 border-l-4 border-[#009A8C] shadow-md">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-start gap-3 md:gap-4">
+                <img
+                  src="/clara-avatar.png"
+                  alt="Clara"
+                  className="w-10 h-10 md:w-12 md:h-12 rounded-full flex-shrink-0 object-cover"
+                />
+                <div className="flex-1">
+                  <h3 className="text-base md:text-lg font-semibold text-[#002B45] mb-1 md:mb-2">
+                    Meet Clara, Your AI Money Advisor
+                  </h3>
+                  <p className="text-xs md:text-sm text-[#3A4F61] leading-relaxed">
+                    I'll ask you a few quick questions to personalize your experience—no pressure, just supportive guidance.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Goal Selection Section - Compact */}
         {!onboardingComplete && (
           <div className="max-w-3xl mx-auto">
-            <p className="text-center text-[18px] font-semibold text-[#002B45] mb-8">
+            <p className="text-center text-[16px] md:text-[18px] font-semibold text-[#002B45] mb-4 md:mb-6">
               What's your biggest money goal right now?
             </p>
 
-            <div className="grid md:grid-cols-2 gap-4 mb-8">
+            <div className="grid md:grid-cols-2 gap-3 md:gap-4 mb-6 md:mb-8">
               {goals.map(({ value, label, icon: Icon, description }) => (
                 <button
                   key={value}
                   onClick={() => setSelectedGoal(value)}
-                  className={`relative p-6 md:p-7 rounded-xl border-[1.5px] transition-all duration-200 text-left group ${
+                  className={`relative p-4 md:p-5 rounded-xl border-[1.5px] transition-all duration-200 text-left group ${
                     selectedGoal === value
                       ? 'border-[#009A8C] bg-[#E7F7F4] shadow-sm'
                       : 'border-[#D4DFE4] bg-white hover:border-[#009A8C] hover:shadow-sm hover:-translate-y-0.5'
                   }`}
                 >
-                  <div className="flex items-start gap-4">
-                    <div className={`p-2.5 rounded-lg transition-colors ${
+                  <div className="flex items-start gap-3">
+                    <div className={`p-2 rounded-lg transition-colors ${
                       selectedGoal === value
                         ? 'bg-[#009A8C]/10'
                         : 'bg-[#F7F9FA]'
                     }`}>
-                      <Icon className="w-5 h-5 text-[#009A8C]" strokeWidth={2} />
+                      <Icon className="w-4 h-4 md:w-5 md:h-5 text-[#009A8C]" strokeWidth={2} />
                     </div>
                     <div className="flex-1">
-                      <div className="flex items-center justify-between mb-1">
-                        <h3 className="font-semibold text-[16px] text-[#002B45]">{label}</h3>
+                      <div className="flex items-center justify-between mb-0.5">
+                        <h3 className="font-semibold text-[14px] md:text-[15px] text-[#002B45]">{label}</h3>
                         {selectedGoal === value && (
-                          <Check className="w-5 h-5 text-[#009A8C]" strokeWidth={2.5} />
+                          <Check className="w-4 h-4 md:w-5 md:h-5 text-[#009A8C]" strokeWidth={2.5} />
                         )}
                       </div>
-                      <p className="text-[14px] text-[#3A4F61] leading-relaxed">{description}</p>
+                      <p className="text-[12px] md:text-[13px] text-[#3A4F61] leading-relaxed">{description}</p>
                     </div>
                   </div>
                 </button>
@@ -121,29 +145,29 @@ const Index = () => {
               size="lg"
               onClick={handleContinue}
               disabled={!selectedGoal}
-              className="w-full md:w-auto md:min-w-[320px] mx-auto flex items-center justify-center bg-[#009A8C] hover:bg-[#007F74] text-white font-semibold text-[18px] py-5 px-8 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#009A8C] disabled:hover:shadow-md hover:scale-[1.02]"
+              className="w-full md:w-auto md:min-w-[300px] mx-auto flex items-center justify-center bg-[#009A8C] hover:bg-[#007F74] text-white font-semibold text-[16px] md:text-[18px] py-4 md:py-5 px-6 md:px-8 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#009A8C] disabled:hover:shadow-md hover:scale-[1.02]"
             >
               Show me my path forward
-              <ArrowRight className="ml-2 w-5 h-5" />
+              <ArrowRight className="ml-2 w-4 h-4 md:w-5 md:h-5" />
             </Button>
 
-            {/* Trust Bar */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-12 max-w-2xl mx-auto">
+            {/* Trust Bar - Compact */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mt-6 md:mt-8 max-w-2xl mx-auto">
               <div className="flex flex-col items-center text-center">
-                <Lock className="w-5 h-5 text-[#4F6A7A] mb-2" strokeWidth={2} />
-                <p className="text-[14px] text-[#4F6A7A] leading-snug">No PII, no risk</p>
+                <Lock className="w-4 h-4 md:w-5 md:h-5 text-[#4F6A7A] mb-1 md:mb-2" strokeWidth={2} />
+                <p className="text-[11px] md:text-[13px] text-[#4F6A7A] leading-snug">No PII, no risk</p>
               </div>
               <div className="flex flex-col items-center text-center">
-                <Clock className="w-5 h-5 text-[#4F6A7A] mb-2" strokeWidth={2} />
-                <p className="text-[14px] text-[#4F6A7A] leading-snug">Takes a few minutes</p>
+                <Clock className="w-4 h-4 md:w-5 md:h-5 text-[#4F6A7A] mb-1 md:mb-2" strokeWidth={2} />
+                <p className="text-[11px] md:text-[13px] text-[#4F6A7A] leading-snug">Takes a few minutes</p>
               </div>
               <div className="flex flex-col items-center text-center">
-                <Heart className="w-5 h-5 text-[#4F6A7A] mb-2" strokeWidth={2} />
-                <p className="text-[14px] text-[#4F6A7A] leading-snug">Judgment-free guidance</p>
+                <Heart className="w-4 h-4 md:w-5 md:h-5 text-[#4F6A7A] mb-1 md:mb-2" strokeWidth={2} />
+                <p className="text-[11px] md:text-[13px] text-[#4F6A7A] leading-snug">Judgment-free</p>
               </div>
               <div className="flex flex-col items-center text-center">
-                <DollarSign className="w-5 h-5 text-[#4F6A7A] mb-2" strokeWidth={2} />
-                <p className="text-[14px] text-[#4F6A7A] leading-snug">Save money - right away</p>
+                <DollarSign className="w-4 h-4 md:w-5 md:h-5 text-[#4F6A7A] mb-1 md:mb-2" strokeWidth={2} />
+                <p className="text-[11px] md:text-[13px] text-[#4F6A7A] leading-snug">Save money</p>
               </div>
             </div>
           </div>

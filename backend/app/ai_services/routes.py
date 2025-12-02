@@ -12,12 +12,13 @@ from ..shared.ai_models import (
     InsightsRequest, InsightsResponse,
     QARequest, QAResponse,
     OnboardingRequest, OnboardingResponse,
+    OnboardingReactionRequest, OnboardingReactionResponse,
     StrategyComparisonRequest, StrategyComparisonResponse,
     AIErrorResponse
 )
 from ..shared.database import get_database
 
-router = APIRouter(prefix="/ai", tags=["AI Services"])
+router = APIRouter(prefix="/api/v1/ai", tags=["AI Services"])
 logger = logging.getLogger(__name__)
 
 
@@ -65,8 +66,16 @@ async def generate_insights(request: InsightsRequest):
         # Get database
         db = await get_database()
         
-        # Fetch profile
+        # Fetch profile - try both profile_id and _id fields
+        from bson import ObjectId
         profile = await db.profiles.find_one({"profile_id": request.profile_id})
+        if not profile:
+            # Try using the request.profile_id as MongoDB ObjectId
+            try:
+                profile = await db.profiles.find_one({"_id": ObjectId(request.profile_id)})
+            except:
+                pass
+        
         if not profile:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -149,8 +158,16 @@ async def ask_question(request: QARequest):
         # Get database
         db = await get_database()
         
-        # Fetch profile
+        # Fetch profile - try both profile_id and _id fields
+        from bson import ObjectId
         profile = await db.profiles.find_one({"profile_id": request.profile_id})
+        if not profile:
+            # Try using the request.profile_id as MongoDB ObjectId
+            try:
+                profile = await db.profiles.find_one({"_id": ObjectId(request.profile_id)})
+            except:
+                pass
+        
         if not profile:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -216,8 +233,16 @@ async def compare_strategies(request: StrategyComparisonRequest):
         # Get database
         db = await get_database()
         
-        # Fetch profile
+        # Fetch profile - try both profile_id and _id fields
+        from bson import ObjectId
         profile = await db.profiles.find_one({"profile_id": request.profile_id})
+        if not profile:
+            # Try using the request.profile_id as MongoDB ObjectId
+            try:
+                profile = await db.profiles.find_one({"_id": ObjectId(request.profile_id)})
+            except:
+                pass
+        
         if not profile:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -293,6 +318,73 @@ async def onboarding_conversation(request: OnboardingRequest):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to generate onboarding message. Please try again."
+        )
+
+
+@router.post("/onboarding-reaction", response_model=OnboardingReactionResponse)
+async def onboarding_reaction(request: OnboardingReactionRequest):
+    """
+    Generate Clara's empathetic reaction to user's onboarding answer.
+    
+    This endpoint provides personalized, empathetic reactions (1-2 sentences)
+    to user answers during the conversational onboarding flow. It enriches
+    the frontend-driven experience with AI-powered personalization.
+    
+    **Example Request:**
+    ```json
+    {
+      "session_id": "user-session-uuid",
+      "step_id": "stressLevel",
+      "user_answers": {
+        "moneyGoal": "pay-faster",
+        "stressLevel": 5
+      },
+      "is_resume": false
+    }
+    ```
+    
+    **Example Response:**
+    ```json
+    {
+      "schema_version": "1.1",
+      "request_id": "uuid",
+      "timestamp": "2025-11-29T19:00:00Z",
+      "clara_message": "Thanks for sharing that—I know talking about debt can be stressful. I'm here with you every step of the way.",
+      "validation_error": null
+    }
+    ```
+    
+    **Key Features:**
+    - Reactive, not directive (doesn't ask questions)
+    - Empathetic and personalized based on user context
+    - Maximum 2 sentences for quick reading
+    - Handles session resume with welcome-back messages
+    - Graceful fallback on errors
+    """
+    try:
+        # Get AI service
+        ai_service = get_ai_service()
+        
+        # Generate Clara's empathetic reaction
+        clara_message = await ai_service.generate_onboarding_reaction(
+            step_id=request.step_id,
+            user_answers=request.user_answers,
+            is_resume=request.is_resume
+        )
+        
+        # Create and return response
+        return OnboardingReactionResponse(
+            clara_message=clara_message,
+            validation_error=None
+        )
+        
+    except Exception as e:
+        logger.error(f"Error generating onboarding reaction: {e}")
+        # Return fallback message instead of error
+        fallback_message = "Thank you for sharing that. Let's keep going." if not request.is_resume else "Welcome back! Let's continue where you left off."
+        return OnboardingReactionResponse(
+            clara_message=fallback_message,
+            validation_error=None
         )
 
 

@@ -11,8 +11,8 @@ import AlertBanner from '@/components/ui/alert-banner';
 import NextActionCard from '@/components/ui/next-action-card';
 import ConfidenceIndicator from '@/components/ui/confidence-indicator';
 import { ExportDialog } from '@/components/ExportDialog';
-import { MilestoneCelebration } from '@/components/MilestoneCelebration';
-import { MilestoneProgress } from '@/components/MilestoneProgress';
+import { AIInsights } from '@/components/AIInsights';
+import { ClaraQA } from '@/components/ClaraQA';
 import { Debt } from '@/types/debt';
 import { calculateTotalDebt, calculateTotalMinimumPayment, calculateDebtToIncome } from '@/utils/debtCalculations';
 import { showSuccess } from '@/utils/toast';
@@ -96,15 +96,12 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50/30 to-teal-50/20">
-      {/* Milestone Celebration */}
-      {profileId && <MilestoneCelebration profileId={profileId} />}
-
       {/* Header */}
       <header className="w-full bg-white/80 backdrop-blur-sm border-b border-gray-100">
         <div className="container mx-auto px-4 md:px-6">
           <div className="flex items-center justify-between py-5 md:py-6">
             <div className="flex items-center cursor-pointer" onClick={() => navigate('/')}>
-              <img src="/pathlight-logo.svg" alt="PathLight" className="w-8 h-8 md:w-10 md:h-10 mr-2.5" />
+              <img src="/pathlight-logo.png" alt="PathLight" className="w-8 h-8 md:w-10 md:h-10 mr-2.5" />
               <h1 className="text-[20px] md:text-[24px] font-bold text-[#002B45] tracking-tight" style={{ letterSpacing: '-0.5%' }}>
                 PathLight
               </h1>
@@ -228,12 +225,6 @@ const Dashboard = () => {
             iconColor={emergencySavingsRatio >= 3 ? '#10B981' : emergencySavingsRatio >= 1 ? '#EAB308' : '#EF4444'}
           />
           
-          {/* Milestone Progress Card */}
-          {profileId && (
-            <div className="lg:col-span-2">
-              <MilestoneProgress profileId={profileId} />
-            </div>
-          )}
         </div>
 
         {/* Visualizations */}
@@ -277,6 +268,36 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+
+        {/* Clara AI Insights */}
+        {profileId && (
+          <div className="mb-8">
+            <AIInsights
+              profileId={profileId}
+              focusAreas={['interest_savings', 'quick_wins']}
+            />
+          </div>
+        )}
+
+        {/* Clara Q&A */}
+        {profileId && (
+          <div className="mb-8">
+            <ClaraQA
+              profileId={profileId}
+              context={{
+                total_debt: totalDebt,
+                debt_count: debts.length,
+                net_cash_flow: netCashFlow
+              }}
+              suggestedQuestions={[
+                "Should I pay off my highest interest debt first?",
+                "How can I reduce my monthly payments?",
+                "What's the fastest way to become debt-free?",
+                "Should I build emergency savings or pay off debt?"
+              ]}
+            />
+          </div>
+        )}
 
         {/* Debt List Table */}
         <div className="mb-8">

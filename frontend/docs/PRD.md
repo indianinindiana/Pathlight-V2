@@ -429,7 +429,7 @@ PathLight provides:
 
 **Priority:** P0 (Must Have)
 
-**Description:** Guide users through initial setup to gather financial context and goals.
+**Description:** Guide users through initial setup to gather financial context and goals using Clara, the AI money advisor.
 
 **Requirements:**
 
@@ -439,20 +439,39 @@ PathLight provides:
    - Provide goal selection (4 primary goals)
    - Support returning users with "Continue" option
 
-2. **Onboarding Flow** (5 steps)
-   - **Step 1**: Stress level + life events
-   - **Step 2**: Demographics (age, employment)
-   - **Step 3**: Income & expenses
-   - **Step 4**: Savings & credit score
-   - **Step 5**: Summary & confirmation
+2. **Clara Conversational Onboarding Flow**
+   - **Welcome Message**: Clara introduces herself warmly and explains the process
+   - **Question 1**: "What brings you to Pathlight today?" (Primary goal selection)
+   - **Question 2**: "What are you hoping Pathlight helps you achieve?" (Secondary goal/clarification)
+   - **Question 3**: "How are you feeling about things right now?" (Stress level/mood)
+   - **Question 4**: "Which support style feels right for you?" (Preferred support approach)
+   - **Question 5**: "How much time would you like to invest each week?" (Time commitment)
+   - **Final**: Encouragement and transition to debt entry
 
-3. **Validation**
+3. **Clara's Conversational Guidelines**
+   - Speaks warmly, briefly, and without guilt
+   - Reacts to user answers with 1-2 sentences of empathetic acknowledgment
+   - Never pressures the user
+   - Keeps tone supportive, conversational, and human
+   - Asks one question at a time
+   - Uses typing indicators for responses
+   - Auto-scrolls conversation as messages appear
+
+4. **UI/UX Requirements**
+   - Single-screen scrolling chat feed (not multi-page)
+   - User sees Clara's message → taps choice → Clara responds → next message appears
+   - Existing UI answer components (buttons, chips, sliders) embedded inline as chat bubbles
+   - No modal transitions or full-screen page changes
+   - Typing indicators before Clara's replies
+   - Auto-scroll after each message
+
+5. **Validation**
    - Real-time field validation
    - Helpful error messages
    - Suggested values where applicable
    - Progress indicator
 
-4. **Personalization**
+6. **Personalization**
    - Stress-aware messaging
    - Empathetic tone for high stress
    - Encouraging messages throughout
