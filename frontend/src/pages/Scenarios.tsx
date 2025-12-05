@@ -15,12 +15,12 @@ import ExplainabilitySection from '@/components/ui/explainability-section';
 import ConfidenceIndicator from '@/components/ui/confidence-indicator';
 import AlertBanner from '@/components/ui/alert-banner';
 import { ExportDialog } from '@/components/ExportDialog';
-import { MilestoneCelebration } from '@/components/MilestoneCelebration';
 import { AIStrategyComparison } from '@/components/AIStrategyComparison';
 import { calculatePayoffScenario, calculateTotalMinimumPayment } from '@/utils/debtCalculations';
 import { PayoffScenario, PayoffStrategy } from '@/types/debt';
 import { showSuccess, showError } from '@/utils/toast';
-import { useRecommendations } from '@/hooks/usePersonalization';
+import { useFinancialAssessment } from '@/hooks/useFinancialAssessment';
+import { Goal, StressLevel, EmploymentStatus, LifeEvent, AgeRange } from '@/types/financialAssessment';
 import { trackPageView, trackEvent, checkMilestones } from '@/services/analyticsApi';
 import { getSessionId } from '@/services/sessionManager';
 
@@ -39,7 +39,33 @@ const Scenarios = () => {
   const [scenarioName, setScenarioName] = useState('');
   const [editingScenario, setEditingScenario] = useState<PayoffScenario | null>(null);
 
-  const { recommendation, isLoading: recommendationLoading } = useRecommendations();
+  // Use financial assessment for recommendations
+  const { data: assessmentData, loading: assessmentLoading } = useFinancialAssessment({
+    profileId: profileId || '',
+    debts: debts.map(debt => ({
+      balance: debt.balance,
+      apr: debt.apr,
+      is_delinquent: false,
+    })),
+    userContext: {
+      goal: Goal.BECOME_DEBT_FREE,
+      stress_level: StressLevel.MEDIUM,
+      employment_status: EmploymentStatus.STABLE,
+      life_events: LifeEvent.NONE,
+      age_range: AgeRange.AGE_35_44,
+    },
+    enabled: !!profileId && debts.length > 0,
+  });
+
+  // Derive recommendation from financial assessment
+  const recommendation = assessmentData ? {
+    recommendedStrategy: assessmentData.deterministic_output.primary_driver === 'high_rate' ? 'avalanche' : 'snowball',
+    explanation: assessmentData.personalized_ux.user_friendly_summary,
+    confidence: assessmentData.deterministic_output.risk_band === 'excellent' || assessmentData.deterministic_output.risk_band === 'low_moderate' ? 'high' :
+                assessmentData.deterministic_output.risk_band === 'moderate' ? 'medium' : 'low',
+    factors: assessmentData.deterministic_output.driver_severity.map(d => d.replace('_', ' ')),
+    alternatives: []
+  } : null;
 
   useEffect(() => {
     if (debts.length === 0) {
@@ -56,10 +82,10 @@ const Scenarios = () => {
   }, [debts, profileId]);
 
   useEffect(() => {
-    if (recommendation && !recommendationLoading) {
-      setSelectedStrategy(recommendation.recommendedStrategy);
+    if (recommendation && !assessmentLoading) {
+      setSelectedStrategy(recommendation.recommendedStrategy as PayoffStrategy);
     }
-  }, [recommendation, recommendationLoading]);
+  }, [recommendation, assessmentLoading]);
 
   const generateDefaultScenarios = () => {
     const minPayment = calculateTotalMinimumPayment(debts);
@@ -248,9 +274,6 @@ const Scenarios = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50/30 to-teal-50/20">
-      {/* Milestone Celebration */}
-      {profileId && <MilestoneCelebration profileId={profileId} />}
-      
       {/* Header */}
       <header className="w-full bg-white/80 backdrop-blur-sm border-b border-gray-100">
         <div className="container mx-auto px-4 md:px-6">
@@ -288,7 +311,7 @@ const Scenarios = () => {
         </div>
 
         {/* Recommendation Banner */}
-        {recommendation && !recommendationLoading && (
+        {recommendation && !assessmentLoading && (
           <Card className="border-[1.5px] border-[#009A8C] bg-[#E7F7F4] mb-8">
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
@@ -496,12 +519,12 @@ const Scenarios = () => {
               snowballData={{
                 total_months: defaultScenarios[0].totalMonths,
                 total_interest: defaultScenarios[0].totalInterest,
-                first_debt_paid: defaultScenarios[0].debtOrder[0]?.name || 'First debt'
+                first_debt_paid: defaultScenarios[0].debtOrder?.[0]?.name || 'First debt'
               }}
               avalancheData={{
                 total_months: defaultScenarios[1].totalMonths,
                 total_interest: defaultScenarios[1].totalInterest,
-                first_debt_paid: defaultScenarios[1].debtOrder[0]?.name || 'First debt'
+                first_debt_paid: defaultScenarios[1].debtOrder?.[0]?.name || 'First debt'
               }}
               onStrategySelect={(strategy) => {
                 setSelectedStrategy(strategy);

@@ -11,14 +11,15 @@ import AlertBanner from '@/components/ui/alert-banner';
 import NextActionCard from '@/components/ui/next-action-card';
 import ConfidenceIndicator from '@/components/ui/confidence-indicator';
 import { ExportDialog } from '@/components/ExportDialog';
-import { AIInsights } from '@/components/AIInsights';
-import { ClaraQA } from '@/components/ClaraQA';
+import { FinancialAssessment } from '@/components/FinancialAssessment';
 import { Debt } from '@/types/debt';
 import { calculateTotalDebt, calculateTotalMinimumPayment, calculateDebtToIncome } from '@/utils/debtCalculations';
 import { showSuccess } from '@/utils/toast';
 import { usePersonalization, useNextBestActions, useConfidenceScore } from '@/hooks/usePersonalization';
+import { useFinancialAssessment } from '@/hooks/useFinancialAssessment';
 import { trackPageView } from '@/services/analyticsApi';
 import { getSessionId } from '@/services/sessionManager';
+import { Goal, StressLevel, EmploymentStatus, LifeEvent, AgeRange } from '@/types/financialAssessment';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -30,6 +31,24 @@ const Dashboard = () => {
   const { alerts } = usePersonalization();
   const { actions, isLoading: actionsLoading } = useNextBestActions();
   const { confidence } = useConfidenceScore();
+
+  // Use financial assessment hook
+  const { data: assessmentData, loading: assessmentLoading, error: assessmentError } = useFinancialAssessment({
+    profileId: profileId || '',
+    debts: debts.map(debt => ({
+      balance: debt.balance,
+      apr: debt.apr,
+      is_delinquent: false, // You may want to add this field to your Debt type
+    })),
+    userContext: {
+      goal: Goal.BECOME_DEBT_FREE, // Default, could be from user profile
+      stress_level: StressLevel.MEDIUM, // Default, could be from user profile
+      employment_status: EmploymentStatus.STABLE, // Default, could be from user profile
+      life_events: LifeEvent.NONE, // Default, could be from user profile
+      age_range: AgeRange.AGE_35_44, // Default, could be from user profile
+    },
+    enabled: !!profileId && debts.length > 0,
+  });
 
   // Track page view on mount
   useEffect(() => {
@@ -76,20 +95,35 @@ const Dashboard = () => {
   };
 
   const handleActionClick = (action: string) => {
+    console.log('Dashboard handleActionClick called with:', action);
     switch (action) {
       case 'emergency-savings':
+        console.log('Navigating to savings plan');
         // Navigate to savings plan
         break;
       case 'high-interest-focus':
+        console.log('Navigating to scenarios (high-interest-focus)');
         navigate('/scenarios');
         break;
       case 'budget-review':
+        console.log('Navigating to budget review');
         // Navigate to budget review
         break;
       case 'consolidation':
+      case 'consolidate-debts':
+        console.log('Navigating to what-if');
         navigate('/what-if');
         break;
+      case 'address-delinquency':
+        console.log('Handling delinquency');
+        // Could navigate to a help page or show guidance
+        break;
+      case 'review-strategy':
+        console.log('Navigating to scenarios (review-strategy)');
+        navigate('/scenarios');
+        break;
       default:
+        console.log('Unknown action:', action);
         break;
     }
   };
@@ -269,32 +303,22 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Clara AI Insights */}
-        {profileId && (
+        {/* Consolidated Financial Assessment with Clara Q&A */}
+        {profileId && debts.length > 0 && (
           <div className="mb-8">
-            <AIInsights
-              profileId={profileId}
-              focusAreas={['interest_savings', 'quick_wins']}
-            />
-          </div>
-        )}
-
-        {/* Clara Q&A */}
-        {profileId && (
-          <div className="mb-8">
-            <ClaraQA
+            <FinancialAssessment
+              data={assessmentData}
+              loading={assessmentLoading}
+              error={assessmentError}
               profileId={profileId}
               context={{
                 total_debt: totalDebt,
                 debt_count: debts.length,
-                net_cash_flow: netCashFlow
+                net_cash_flow: netCashFlow,
+                monthly_income: financialContext?.monthlyIncome,
+                monthly_expenses: financialContext?.monthlyExpenses
               }}
-              suggestedQuestions={[
-                "Should I pay off my highest interest debt first?",
-                "How can I reduce my monthly payments?",
-                "What's the fastest way to become debt-free?",
-                "Should I build emergency savings or pay off debt?"
-              ]}
+              onActionClick={handleActionClick}
             />
           </div>
         )}
