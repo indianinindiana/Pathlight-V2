@@ -5,22 +5,23 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Download, Lightbulb, TrendingDown, Calendar, Shield, Target, Heart, Trash2, Edit2 } from 'lucide-react';
+import { ArrowLeft, Download, Lightbulb, TrendingDown, Calendar, Shield, Target, Heart, Trash2, Edit2, Zap, Link2, Info, HelpCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import ScenarioCard from '@/components/ScenarioCard';
-import ScenarioComparison from '@/components/ScenarioComparison';
+import PayoffTrajectoryChart from '@/components/PayoffTrajectoryChart';
+import StrategyBreakdownChart from '@/components/StrategyBreakdownChart';
 import ScenarioSlider from '@/components/ui/scenario-slider';
 import StrategyToggle from '@/components/ui/strategy-toggle';
 import ExplainabilitySection from '@/components/ui/explainability-section';
-import ConfidenceIndicator from '@/components/ui/confidence-indicator';
-import AlertBanner from '@/components/ui/alert-banner';
 import { ExportDialog } from '@/components/ExportDialog';
 import { AIStrategyComparison } from '@/components/AIStrategyComparison';
-import { calculatePayoffScenario, calculateTotalMinimumPayment } from '@/utils/debtCalculations';
+import { calculatePayoffScenario, calculateTotalMinimumPayment, simulateConsolidation, simulateSettlement } from '@/utils/debtCalculations';
 import { PayoffScenario, PayoffStrategy } from '@/types/debt';
 import { showSuccess, showError } from '@/utils/toast';
 import { useFinancialAssessment } from '@/hooks/useFinancialAssessment';
-import { Goal, StressLevel, EmploymentStatus, LifeEvent, AgeRange } from '@/types/financialAssessment';
+import { Goal, StressLevel, EmploymentStatus, LifeEvent, AgeRange, RiskBand } from '@/types/financialAssessment';
 import { trackPageView, trackEvent, checkMilestones } from '@/services/analyticsApi';
 import { getSessionId } from '@/services/sessionManager';
 
@@ -38,6 +39,89 @@ const Scenarios = () => {
   const [showNameDialog, setShowNameDialog] = useState(false);
   const [scenarioName, setScenarioName] = useState('');
   const [editingScenario, setEditingScenario] = useState<PayoffScenario | null>(null);
+  const [selectedStrategyId, setSelectedStrategyId] = useState<string | null>(null);
+  const [breakdownViewMode, setBreakdownViewMode] = useState<'stacked' | 'small-multiples' | 'pre-post-consolidation'>('stacked');
+  const [showRecommendationModal, setShowRecommendationModal] = useState(false);
+  const [showStrategyInfoModal, setShowStrategyInfoModal] = useState(false);
+  const [selectedStrategyInfo, setSelectedStrategyInfo] = useState<'snowball' | 'avalanche' | 'custom' | null>(null);
+
+  // Helper: Check if debt can be consolidated
+  const canConsolidate = (debt: any) => {
+    // Only credit cards, personal loans, installment loans, and student loans can be consolidated
+    // Mortgages and auto loans are secured and cannot be consolidated
+    return ['credit-card', 'personal-loan', 'installment-loan', 'student-loan'].includes(debt.type);
+  };
+
+  // Helper: Check if debt can be settled
+  const canSettle = (debt: any) => {
+    // Only credit cards, personal loans, installment loans, and PRIVATE student loans can be settled
+    // Auto loans, mortgages, and federal student loans cannot be settled
+    if (['credit-card', 'personal-loan', 'installment-loan'].includes(debt.type)) {
+      return true;
+    }
+    if (debt.type === 'student-loan' && debt.loanProgram === 'private') {
+      return true;
+    }
+    return false;
+  };
+
+  // Calculate eligibility for consolidation and settlement
+  const consolidatableDebts = debts.filter(canConsolidate);
+  const settlableDebts = debts.filter(canSettle);
+  const totalConsolidatableBalance = consolidatableDebts.reduce((sum, d) => sum + d.balance, 0);
+  const totalSettlableBalance = settlableDebts.reduce((sum, d) => sum + d.balance, 0);
+
+  // Helper: Map FinancialContext values to Financial Assessment API enums
+  const mapGoal = (goal?: string): Goal => {
+    switch (goal) {
+      case 'pay-faster': return Goal.BECOME_DEBT_FREE;
+      case 'lower-payment': return Goal.LOWER_PAYMENTS;
+      case 'reduce-interest': return Goal.BECOME_DEBT_FREE;
+      case 'avoid-default': return Goal.REDUCE_STRESS;
+      default: return Goal.BECOME_DEBT_FREE;
+    }
+  };
+
+  const mapStressLevel = (level?: number): StressLevel => {
+    if (!level) return StressLevel.MEDIUM;
+    if (level <= 2) return StressLevel.LOW;
+    if (level >= 4) return StressLevel.HIGH;
+    return StressLevel.MEDIUM;
+  };
+
+  const mapEmploymentStatus = (status?: string): EmploymentStatus => {
+    switch (status) {
+      case 'full-time': return EmploymentStatus.STABLE;
+      case 'part-time': return EmploymentStatus.VARIABLE;
+      case 'self-employed': return EmploymentStatus.VARIABLE;
+      case 'unemployed': return EmploymentStatus.UNEMPLOYED;
+      case 'retired': return EmploymentStatus.STABLE;
+      case 'student': return EmploymentStatus.VARIABLE;
+      default: return EmploymentStatus.STABLE;
+    }
+  };
+
+  const mapLifeEvent = (event?: string): LifeEvent => {
+    switch (event) {
+      case 'income-increase': return LifeEvent.JOB_CHANGE;
+      case 'income-decrease': return LifeEvent.JOB_CHANGE;
+      case 'major-expense': return LifeEvent.MEDICAL;
+      case 'household-changes': return LifeEvent.MARRIAGE;
+      case 'other-goals': return LifeEvent.NONE;
+      default: return LifeEvent.NONE;
+    }
+  };
+
+  const mapAgeRange = (range?: string): AgeRange => {
+    switch (range) {
+      case '18-24': return AgeRange.UNDER_25;
+      case '25-34': return AgeRange.AGE_25_34;
+      case '35-44': return AgeRange.AGE_35_44;
+      case '45-59': return AgeRange.AGE_45_54;
+      case '60+': return AgeRange.AGE_65_PLUS;
+      default: return AgeRange.AGE_35_44;
+    }
+  };
 
   // Use financial assessment for recommendations
   const { data: assessmentData, loading: assessmentLoading } = useFinancialAssessment({
@@ -45,27 +129,113 @@ const Scenarios = () => {
     debts: debts.map(debt => ({
       balance: debt.balance,
       apr: debt.apr,
-      is_delinquent: false,
+      is_delinquent: debt.isDelinquent || false,
     })),
     userContext: {
-      goal: Goal.BECOME_DEBT_FREE,
-      stress_level: StressLevel.MEDIUM,
-      employment_status: EmploymentStatus.STABLE,
-      life_events: LifeEvent.NONE,
-      age_range: AgeRange.AGE_35_44,
+      goal: mapGoal(financialContext?.primaryGoal),
+      stress_level: mapStressLevel(financialContext?.stressLevel),
+      employment_status: mapEmploymentStatus(financialContext?.employmentStatus),
+      life_events: mapLifeEvent(financialContext?.lifeEvents?.[0]),
+      age_range: mapAgeRange(financialContext?.ageRange),
     },
     enabled: !!profileId && debts.length > 0,
   });
 
   // Derive recommendation from financial assessment
-  const recommendation = assessmentData ? {
-    recommendedStrategy: assessmentData.deterministic_output.primary_driver === 'high_rate' ? 'avalanche' : 'snowball',
-    explanation: assessmentData.personalized_ux.user_friendly_summary,
-    confidence: assessmentData.deterministic_output.risk_band === 'excellent' || assessmentData.deterministic_output.risk_band === 'low_moderate' ? 'high' :
-                assessmentData.deterministic_output.risk_band === 'moderate' ? 'medium' : 'low',
-    factors: assessmentData.deterministic_output.driver_severity.map(d => d.replace('_', ' ')),
-    alternatives: []
-  } : null;
+  const recommendation = assessmentData ? (() => {
+    const { primary_driver, risk_band, driver_severity } = assessmentData.deterministic_output;
+    const totalDebt = debts.reduce((sum, d) => sum + d.balance, 0);
+    const weightedAPR = debts.reduce((sum, d) => sum + (d.balance * d.apr), 0) / totalDebt;
+    
+    let recommendedStrategy: string;
+    let explanation = assessmentData.personalized_ux.user_friendly_summary;
+    const alternatives: Array<{ strategy: string; reason: string }> = [];
+
+    // Decision logic for primary recommendation
+    if (risk_band === RiskBand.HIGH || risk_band === RiskBand.CRITICAL) {
+      // Severe financial stress - consider settlement if eligible
+      if (settlableDebts.length > 0 && totalSettlableBalance > 5000) {
+        recommendedStrategy = 'settlement';
+        explanation = `Given your financial situation, debt settlement could help reduce your total debt burden. ${settlableDebts.length} of your debts (${((totalSettlableBalance / totalDebt) * 100).toFixed(0)}% of total) are eligible for settlement.`;
+        
+        // Add avalanche as alternative
+        alternatives.push({
+          strategy: 'Avalanche',
+          reason: 'If you can increase income or reduce expenses'
+        });
+      } else {
+        recommendedStrategy = 'snowball';
+        explanation = 'Focus on quick wins with the Snowball method to build momentum and reduce stress.';
+      }
+    } else if (consolidatableDebts.length >= 2 && totalConsolidatableBalance > 10000 && weightedAPR > 12) {
+      // Good candidate for consolidation
+      if (risk_band === RiskBand.EXCELLENT || risk_band === RiskBand.LOW_MODERATE) {
+        recommendedStrategy = 'consolidation';
+        explanation = `You have ${consolidatableDebts.length} debts eligible for consolidation with an average APR of ${weightedAPR.toFixed(1)}%. Consolidating could lower your interest rate and simplify payments.`;
+        
+        // Add avalanche as alternative
+        alternatives.push({
+          strategy: 'Avalanche',
+          reason: 'If you prefer to keep debts separate'
+        });
+        alternatives.push({
+          strategy: 'Snowball',
+          reason: 'For psychological momentum'
+        });
+      } else {
+        // Not good enough credit for consolidation
+        recommendedStrategy = primary_driver === 'high_rate' ? 'avalanche' : 'snowball';
+        explanation = assessmentData.personalized_ux.user_friendly_summary;
+        
+        // Mention consolidation as future option
+        alternatives.push({
+          strategy: 'Consolidation',
+          reason: 'Consider once credit improves'
+        });
+      }
+    } else if (primary_driver === 'high_rate') {
+      // High interest rates - avalanche
+      recommendedStrategy = 'avalanche';
+      
+      alternatives.push({
+        strategy: 'Snowball',
+        reason: 'Better for motivation and quick wins'
+      });
+      
+      // Add consolidation if eligible
+      if (consolidatableDebts.length >= 2 && (risk_band === RiskBand.EXCELLENT || risk_band === RiskBand.LOW_MODERATE)) {
+        alternatives.push({
+          strategy: 'Consolidation',
+          reason: 'Could simplify payments and lower rates'
+        });
+      }
+    } else {
+      // Default to snowball
+      recommendedStrategy = 'snowball';
+      
+      alternatives.push({
+        strategy: 'Avalanche',
+        reason: 'Saves more on interest long-term'
+      });
+      
+      // Add consolidation if eligible
+      if (consolidatableDebts.length >= 2 && (risk_band === RiskBand.EXCELLENT || risk_band === RiskBand.LOW_MODERATE)) {
+        alternatives.push({
+          strategy: 'Consolidation',
+          reason: 'Could simplify payments'
+        });
+      }
+    }
+
+    return {
+      recommendedStrategy,
+      explanation,
+      confidence: risk_band === RiskBand.EXCELLENT || risk_band === RiskBand.LOW_MODERATE ? 'high' :
+                  risk_band === RiskBand.MODERATE ? 'medium' : 'low',
+      factors: driver_severity.map(d => d.replace('_', ' ')),
+      alternatives: alternatives.slice(0, 2), // Limit to 2 alternatives
+    };
+  })() : null;
 
   useEffect(() => {
     if (debts.length === 0) {
@@ -95,25 +265,23 @@ const Scenarios = () => {
 
     const scenarios: PayoffScenario[] = [];
 
-    // Minimum payment scenario (Snowball)
-    const minScenario = calculatePayoffScenario(debts, 'snowball', minPayment);
-    minScenario.name = 'Minimum Payments (Snowball)';
-    scenarios.push(minScenario);
+    // Snowball strategy - pay smallest debts first for psychological wins
+    const snowballScenario = calculatePayoffScenario(debts, 'snowball', minPayment);
+    snowballScenario.name = 'Snowball Method';
+    scenarios.push(snowballScenario);
 
-    // Aggressive payment scenario (Avalanche)
-    const aggressivePayment = Math.min(availableAmount, minPayment * 2);
-    const aggressiveScenario = calculatePayoffScenario(debts, 'avalanche', aggressivePayment);
-    aggressiveScenario.name = 'Aggressive Payoff (Avalanche)';
-    scenarios.push(aggressiveScenario);
-
-    // Moderate payment scenario
-    const moderatePayment = minPayment * 1.5;
-    const moderateScenario = calculatePayoffScenario(debts, 'avalanche', moderatePayment);
-    moderateScenario.name = 'Moderate Strategy';
-    scenarios.push(moderateScenario);
+    // Avalanche strategy - pay highest interest first to save money
+    const avalancheScenario = calculatePayoffScenario(debts, 'avalanche', minPayment);
+    avalancheScenario.name = 'Avalanche Method';
+    scenarios.push(avalancheScenario);
 
     setDefaultScenarios(scenarios);
-    setSelectedScenarios([scenarios[0].id, scenarios[1].id]);
+    setSelectedScenarios([scenarios[0].id]);
+    
+    // Auto-select first scenario for breakdown view
+    if (scenarios.length > 0) {
+      setSelectedStrategyId(scenarios[0].id);
+    }
 
     // Set initial custom payment
     setCustomPayment(minPayment);
@@ -127,7 +295,7 @@ const Scenarios = () => {
     const minPayment = calculateTotalMinimumPayment(debts);
 
     if (customPayment < minPayment) {
-      showError(`Monthly payment must be at least $${minPayment.toFixed(2)}`);
+      showError(`Monthly payment must be at least $${Math.round(minPayment)}`);
       return;
     }
 
@@ -223,6 +391,54 @@ const Scenarios = () => {
     selectedScenarios.includes(s.id)
   );
 
+  const handleTestSettlement = () => {
+    if (debts.length === 0) {
+      showError('No debts available to test settlement');
+      return;
+    }
+
+    // Use the first debt for settlement test
+    const testDebt = debts[0];
+    const settlementScenario = simulateSettlement(
+      debts,
+      testDebt.id,
+      50, // Settle for 50% of balance
+      6, // Settlement occurs at month 6
+      200, // Monthly program payment
+      minPayment * 1.5, // Total monthly payment
+      new Date()
+    );
+
+    settlementScenario.name = `Settlement Test - ${testDebt.name}`;
+    setCustomScenarios([...customScenarios, settlementScenario]);
+    setSelectedScenarios([...selectedScenarios, settlementScenario.id]);
+    showSuccess(`Settlement scenario created! Check month 6 for the orange event marker.`);
+  };
+
+  const handleTestConsolidation = () => {
+    if (debts.length < 2) {
+      showError('Need at least 2 debts to test consolidation');
+      return;
+    }
+
+    // Consolidate first 2 debts
+    const debtsToConsolidate = debts.slice(0, 2).map(d => d.id);
+    const consolidationScenario = simulateConsolidation(
+      debts,
+      debtsToConsolidate,
+      7.5, // New APR
+      60, // 5 year term
+      minPayment * 1.5, // Total monthly payment
+      3, // 3% origination fee
+      new Date()
+    );
+
+    consolidationScenario.name = 'Consolidation Test';
+    setCustomScenarios([...customScenarios, consolidationScenario]);
+    setSelectedScenarios([...selectedScenarios, consolidationScenario.id]);
+    showSuccess(`Consolidation scenario created! Check month 0 for the purple event marker.`);
+  };
+
   const handleExport = () => {
     showSuccess('Export functionality coming soon!');
   };
@@ -242,13 +458,18 @@ const Scenarios = () => {
     ? baseScenario.totalInterest - customScenarioPreview.totalInterest
     : 0;
 
+  // Calculate actual metrics for strategy options
+  const snowballPreview = defaultScenarios.find(s => s.strategy === 'snowball');
+  const avalanchePreview = defaultScenarios.find(s => s.strategy === 'avalanche');
+  const customPreview = customScenarioPreview;
+
   const strategyOptions = [
     {
       value: 'snowball',
       label: 'Snowball',
       metrics: {
-        months: 48,
-        interest: 8500,
+        months: snowballPreview?.totalMonths || 48,
+        interest: Math.round(snowballPreview?.totalInterest || 8500),
         description: 'Best for motivation'
       }
     },
@@ -256,8 +477,8 @@ const Scenarios = () => {
       value: 'avalanche',
       label: 'Avalanche',
       metrics: {
-        months: 44,
-        interest: 7200,
+        months: avalanchePreview?.totalMonths || 44,
+        interest: Math.round(avalanchePreview?.totalInterest || 7200),
         description: 'Saves most money'
       }
     },
@@ -265,8 +486,8 @@ const Scenarios = () => {
       value: 'custom',
       label: 'Hybrid',
       metrics: {
-        months: 46,
-        interest: 7800,
+        months: customPreview?.totalMonths || 46,
+        interest: Math.round(customPreview?.totalInterest || 7800),
         description: 'Balanced approach'
       }
     }
@@ -310,80 +531,18 @@ const Scenarios = () => {
           </p>
         </div>
 
-        {/* Recommendation Banner */}
-        {recommendation && !assessmentLoading && (
-          <Card className="border-[1.5px] border-[#009A8C] bg-[#E7F7F4] mb-8">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-4 flex-1">
-                  <div className="p-3 bg-[#009A8C]/10 rounded-lg">
-                    <Lightbulb className="w-6 h-6 text-[#009A8C]" strokeWidth={2} />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-semibold text-[#002B45] text-lg">
-                        Recommended Strategy: {recommendation.recommendedStrategy.charAt(0).toUpperCase() + recommendation.recommendedStrategy.slice(1)}
-                      </h3>
-                      <ConfidenceIndicator
-                        level={recommendation.confidence}
-                        factors={recommendation.factors}
-                        explanation={recommendation.explanation}
-                      />
-                    </div>
-                    <p className="text-sm text-[#3A4F61] mb-3">
-                      {recommendation.explanation}
-                    </p>
-                    {recommendation.alternatives.length > 0 && (
-                      <div className="text-xs text-[#4F6A7A]">
-                        <span className="font-medium">Also consider:</span>{' '}
-                        {recommendation.alternatives.map((alt, i) => (
-                          <span key={i}>
-                            {alt.strategy} ({alt.reason})
-                            {i < recommendation.alternatives.length - 1 ? ', ' : ''}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {/* Recommendation Banner - Removed, will be shown as badge on cards */}
 
         {/* Comparison Limit Alert */}
         {selectedScenarios.length === MAX_COMPARISON_SCENARIOS && (
-          <AlertBanner type="info" className="mb-8">
-            You've selected the maximum of {MAX_COMPARISON_SCENARIOS} scenarios for comparison. Deselect one to choose a different scenario.
-          </AlertBanner>
+          <Card className="border-[1.5px] border-blue-200 bg-blue-50 mb-8">
+            <CardContent className="p-4">
+              <p className="text-sm text-blue-800">
+                You've selected the maximum of {MAX_COMPARISON_SCENARIOS} scenarios for comparison. Deselect one to choose a different scenario.
+              </p>
+            </CardContent>
+          </Card>
         )}
-
-        {/* What-If CTA Card */}
-        <Card className="border-[1.5px] border-[#009A8C] bg-[#E7F7F4] mb-8">
-          <CardContent className="p-6">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-[#009A8C]/10 rounded-lg">
-                  <Lightbulb className="w-6 h-6 text-[#009A8C]" strokeWidth={2} />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-[#002B45] text-lg mb-1">
-                    Want to explore more options?
-                  </h3>
-                  <p className="text-sm text-[#3A4F61]">
-                    Try "What If?" scenarios to see how paying extra, consolidating, or other strategies could change your payoff journey
-                  </p>
-                </div>
-              </div>
-              <Button
-                onClick={() => navigate('/what-if')}
-                className="bg-[#009A8C] hover:bg-[#007F74] text-white rounded-xl whitespace-nowrap"
-              >
-                Explore What-If Scenarios
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Interactive Scenario Builder */}
         <Card className="border-[1.5px] border-[#D4DFE4] mb-8">
@@ -424,7 +583,7 @@ const Scenarios = () => {
                 },
                 {
                   label: interestSaved >= 0 ? 'Interest Saved' : 'Extra Interest',
-                  value: `$${Math.abs(interestSaved).toLocaleString()}`
+                  value: `$${Math.abs(Math.round(interestSaved)).toLocaleString()}`
                 }
               ]}
             />
@@ -442,6 +601,69 @@ const Scenarios = () => {
           </CardContent>
         </Card>
 
+        {/* Test What-If Features */}
+        <Card className="border-[1.5px] border-[#009A8C] bg-[#E7F7F4] mb-8">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Lightbulb className="w-5 h-5 text-[#009A8C]" />
+              <CardTitle className="text-[#002B45]">Test New Visualization Features</CardTitle>
+            </div>
+            <CardDescription className="text-[#3A4F61]">
+              Try out consolidation and settlement scenarios to see event markers and enhanced tooltips
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 bg-white rounded-lg border border-[#D4DFE4]">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-2 bg-purple-100 rounded">
+                    <Link2 className="w-4 h-4 text-purple-600" />
+                  </div>
+                  <h4 className="font-semibold text-[#002B45]">Test Consolidation</h4>
+                </div>
+                <p className="text-sm text-[#3A4F61] mb-3">
+                  Combines your first 2 debts into a single loan at 7.5% APR. Look for the purple marker at month 0.
+                </p>
+                <Button
+                  onClick={handleTestConsolidation}
+                  disabled={debts.length < 2}
+                  className="w-full bg-purple-600 hover:bg-purple-700 text-white rounded-xl"
+                >
+                  <Link2 className="w-4 h-4 mr-2" />
+                  Create Consolidation Test
+                </Button>
+              </div>
+
+              <div className="p-4 bg-white rounded-lg border border-[#D4DFE4]">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-2 bg-orange-100 rounded">
+                    <Zap className="w-4 h-4 text-orange-600" />
+                  </div>
+                  <h4 className="font-semibold text-[#002B45]">Test Settlement</h4>
+                </div>
+                <p className="text-sm text-[#3A4F61] mb-3">
+                  Settles your first debt for 50% at month 6. Look for the orange marker showing forgiven amount.
+                </p>
+                <Button
+                  onClick={handleTestSettlement}
+                  disabled={debts.length === 0}
+                  className="w-full bg-orange-600 hover:bg-orange-700 text-white rounded-xl"
+                >
+                  <Zap className="w-4 h-4 mr-2" />
+                  Create Settlement Test
+                </Button>
+              </div>
+            </div>
+
+            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm text-blue-800">
+                <strong>💡 Tip:</strong> After creating a test scenario, select it for comparison to see the event markers on the chart.
+                Hover over the markers to see detailed event information in the tooltip.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Default Scenarios */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
@@ -449,14 +671,21 @@ const Scenarios = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {defaultScenarios.map((scenario) => (
-              <ScenarioCard
-                key={scenario.id}
-                scenario={scenario}
-                isSelected={selectedScenarios.includes(scenario.id)}
-                onClick={() => toggleScenarioSelection(scenario.id)}
-              />
-            ))}
+            {defaultScenarios.map((scenario) => {
+              const isRecommended = recommendation &&
+                scenario.strategy === recommendation.recommendedStrategy;
+              
+              return (
+                <ScenarioCard
+                  key={scenario.id}
+                  scenario={scenario}
+                  isSelected={selectedScenarios.includes(scenario.id)}
+                  onClick={() => toggleScenarioSelection(scenario.id)}
+                  isRecommended={isRecommended}
+                  recommendationReason={isRecommended ? recommendation.explanation : undefined}
+                />
+              );
+            })}
           </div>
         </div>
 
@@ -471,13 +700,13 @@ const Scenarios = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {customScenarios.map((scenario) => (
-                <div key={scenario.id} className="relative">
+                <div key={scenario.id} className="relative group">
                   <ScenarioCard
                     scenario={scenario}
                     isSelected={selectedScenarios.includes(scenario.id)}
                     onClick={() => toggleScenarioSelection(scenario.id)}
                   />
-                  <div className="absolute top-2 right-2 flex gap-2">
+                  <div className="absolute bottom-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                     <Button
                       size="sm"
                       variant="outline"
@@ -485,9 +714,9 @@ const Scenarios = () => {
                         e.stopPropagation();
                         handleEditScenario(scenario);
                       }}
-                      className="bg-white/90 backdrop-blur-sm border-[#D4DFE4] hover:bg-white"
+                      className="h-8 w-8 p-0 bg-white/95 backdrop-blur-sm border-[#D4DFE4] hover:bg-white shadow-md"
                     >
-                      <Edit2 className="w-3 h-3" />
+                      <Edit2 className="w-3.5 h-3.5" />
                     </Button>
                     <Button
                       size="sm"
@@ -496,9 +725,9 @@ const Scenarios = () => {
                         e.stopPropagation();
                         handleDeleteScenario(scenario.id);
                       }}
-                      className="bg-white/90 backdrop-blur-sm border-red-200 text-red-600 hover:bg-red-50"
+                      className="h-8 w-8 p-0 bg-white/95 backdrop-blur-sm border-red-200 text-red-600 hover:bg-red-50 shadow-md"
                     >
-                      <Trash2 className="w-3 h-3" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   </div>
                 </div>
@@ -507,57 +736,88 @@ const Scenarios = () => {
           </div>
         )}
 
-        <p className="text-sm text-[#4F6A7A] mb-8">
-          Click on scenarios to select them for comparison (selected: {selectedScenarios.length}/{MAX_COMPARISON_SCENARIOS})
-        </p>
 
-        {/* Clara AI Strategy Comparison */}
-        {profileId && defaultScenarios.length >= 2 && (
-          <div className="mb-8">
-            <AIStrategyComparison
-              profileId={profileId}
-              snowballData={{
-                total_months: defaultScenarios[0].totalMonths,
-                total_interest: defaultScenarios[0].totalInterest,
-                first_debt_paid: defaultScenarios[0].debtOrder?.[0]?.name || 'First debt'
-              }}
-              avalancheData={{
-                total_months: defaultScenarios[1].totalMonths,
-                total_interest: defaultScenarios[1].totalInterest,
-                first_debt_paid: defaultScenarios[1].debtOrder?.[0]?.name || 'First debt'
-              }}
-              onStrategySelect={(strategy) => {
-                setSelectedStrategy(strategy);
-                showSuccess(`Switched to ${strategy} strategy`);
-              }}
-            />
-          </div>
+        {/* Chart 1: Payoff Trajectory Comparison */}
+        {selectedScenarioObjects.length >= 1 && (
+          <Card className="border-[1.5px] border-[#D4DFE4] mb-8">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-[#002B45]">Strategy Comparison</CardTitle>
+                  <CardDescription className="text-[#3A4F61]">
+                    Click on any line to see detailed breakdown below
+                  </CardDescription>
+                </div>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <HelpCircle className="h-4 w-4 text-[#4F6A7A]" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">Compare total debt balance over time. Click a line to view per-debt breakdown.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <PayoffTrajectoryChart
+                scenarios={selectedScenarioObjects}
+                selectedStrategyId={selectedStrategyId}
+                onStrategySelected={(id) => {
+                  setSelectedStrategyId(id);
+                }}
+                height={400}
+                showLegend={true}
+              />
+            </CardContent>
+          </Card>
         )}
 
-        {/* Comparison Section */}
-        {selectedScenarioObjects.length >= 2 && (
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold text-[#002B45]">
-                Scenario Comparison
-              </h3>
-              <Button
-                onClick={handleExport}
-                className="bg-[#009A8C] hover:bg-[#007F74] text-white rounded-xl"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Export Comparison
-              </Button>
-            </div>
-            <ScenarioComparison scenarios={selectedScenarioObjects} />
-          </div>
+        {/* Chart 2: Strategy Breakdown */}
+        {selectedStrategyId && selectedScenarioObjects.length >= 1 && (
+          <Card className="border-[1.5px] border-[#D4DFE4] mb-8">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-[#002B45]">Debt Breakdown</CardTitle>
+                  <CardDescription className="text-[#3A4F61]">
+                    {selectedScenarioObjects.find(s => s.id === selectedStrategyId)?.name}
+                  </CardDescription>
+                </div>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <HelpCircle className="h-4 w-4 text-[#4F6A7A]" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">See how each individual debt is paid off over time in the selected strategy.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <StrategyBreakdownChart
+                scenario={selectedScenarioObjects.find(s => s.id === selectedStrategyId)!}
+                debts={debts}
+                viewMode={breakdownViewMode}
+                onViewModeChange={(mode) => setBreakdownViewMode(mode as any)}
+                height={400}
+              />
+            </CardContent>
+          </Card>
         )}
 
-        {selectedScenarioObjects.length < 2 && (
+        {selectedScenarioObjects.length < 1 && (
           <Card className="border-[1.5px] border-[#D4DFE4] mb-8">
             <CardContent className="py-12 text-center">
               <p className="text-[#3A4F61] text-lg">
-                Select at least 2 scenarios to see a detailed comparison
+                Select at least 1 scenario to see the visualization
               </p>
             </CardContent>
           </Card>
@@ -598,37 +858,6 @@ const Scenarios = () => {
           />
         )}
 
-        {/* Key Insights */}
-        <Card className="border-[1.5px] border-[#D4DFE4] mt-8">
-          <CardHeader>
-            <CardTitle className="text-[#002B45]">Key Insights</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="p-4 bg-[#E7F7F4] rounded-lg">
-                <h4 className="font-semibold text-[#002B45] mb-2">Snowball Method</h4>
-                <p className="text-sm text-[#3A4F61]">
-                  Focuses on paying off smallest debts first. Builds momentum and motivation through quick wins.
-                  May pay slightly more interest overall but provides psychological benefits.
-                </p>
-              </div>
-              <div className="p-4 bg-blue-50 rounded-lg">
-                <h4 className="font-semibold text-[#002B45] mb-2">Avalanche Method</h4>
-                <p className="text-sm text-[#3A4F61]">
-                  Targets highest interest rate debts first. Mathematically optimal approach that saves the most
-                  money on interest. Best for those focused on minimizing total cost.
-                </p>
-              </div>
-              <div className="p-4 bg-purple-50 rounded-lg">
-                <h4 className="font-semibold text-[#002B45] mb-2">Custom Strategy</h4>
-                <p className="text-sm text-[#3A4F61]">
-                  Create your own plan based on your specific situation and preferences. Adjust monthly payments
-                  to find the right balance between speed and affordability.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Name Scenario Dialog */}
@@ -661,11 +890,11 @@ const Scenarios = () => {
               <h4 className="text-sm font-semibold text-[#002B45] mb-2">Scenario Details</h4>
               <div className="space-y-1 text-sm text-[#3A4F61]">
                 <p><span className="font-medium">Strategy:</span> {selectedStrategy.charAt(0).toUpperCase() + selectedStrategy.slice(1)}</p>
-                <p><span className="font-medium">Monthly Payment:</span> ${customPayment.toLocaleString()}</p>
+                <p><span className="font-medium">Monthly Payment:</span> ${Math.round(customPayment).toLocaleString()}</p>
                 {customScenarioPreview && (
                   <>
                     <p><span className="font-medium">Payoff Time:</span> {customScenarioPreview.totalMonths} months</p>
-                    <p><span className="font-medium">Total Interest:</span> ${customScenarioPreview.totalInterest.toLocaleString()}</p>
+                    <p><span className="font-medium">Total Interest:</span> ${Math.round(customScenarioPreview.totalInterest).toLocaleString()}</p>
                   </>
                 )}
               </div>

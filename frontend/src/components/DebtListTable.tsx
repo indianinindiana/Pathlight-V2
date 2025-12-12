@@ -22,6 +22,10 @@ const DebtListTable = ({ debts, onEdit, onDelete, onAddNew, onUpdatePriority }: 
   const [filterType, setFilterType] = useState<string>('all');
   const [draggedDebt, setDraggedDebt] = useState<string | null>(null);
 
+  // Find debts with highest interest and largest balance
+  const highestInterestDebt = debts.length > 0 ? debts.reduce((max, debt) => debt.apr > max.apr ? debt : max) : null;
+  const largestBalanceDebt = debts.length > 0 ? debts.reduce((max, debt) => debt.balance > max.balance ? debt : max) : null;
+
   const getDebtTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
       'credit-card': 'Credit Card',
@@ -189,6 +193,16 @@ const DebtListTable = ({ debts, onEdit, onDelete, onAddNew, onUpdatePriority }: 
                         <Badge className="bg-red-100 text-red-800 border-0">
                           <AlertCircle className="w-3 h-3 mr-1" />
                           Delinquent
+                        </Badge>
+                      )}
+                      {highestInterestDebt && debt.id === highestInterestDebt.id && (
+                        <Badge className="bg-[#E7F7F4] text-[#009A8C] border-0 font-semibold">
+                          🔥 Highest Interest
+                        </Badge>
+                      )}
+                      {largestBalanceDebt && debt.id === largestBalanceDebt.id && (
+                        <Badge className="bg-blue-50 text-blue-600 border-0 font-semibold">
+                          💰 Largest Balance
                         </Badge>
                       )}
                       {debt.customOrder && (

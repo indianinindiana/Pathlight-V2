@@ -21,16 +21,20 @@ async def create_debt(debt: SimpleDebt):
     # Convert debt to dict and remove id if present
     debt_dict = debt.model_dump(by_alias=True, exclude={"id"}, exclude_none=True)
     
-    # Convert date to datetime for MongoDB compatibility
-    if "next_payment_date" in debt_dict and isinstance(debt_dict["next_payment_date"], date):
-        debt_dict["next_payment_date"] = datetime.combine(
-            debt_dict["next_payment_date"],
-            datetime.min.time()
-        ).replace(tzinfo=timezone.utc)
+    # Convert all date fields to datetime for MongoDB compatibility
+    date_fields = ["next_payment_date", "origination_date"]
+    for field in date_fields:
+        if field in debt_dict and isinstance(debt_dict[field], date):
+            debt_dict[field] = datetime.combine(
+                debt_dict[field],
+                datetime.min.time()
+            ).replace(tzinfo=timezone.utc)
     
-    # Convert enum to string
-    if "type" in debt_dict:
-        debt_dict["type"] = debt_dict["type"].value if hasattr(debt_dict["type"], "value") else str(debt_dict["type"])
+    # Convert all enums to strings
+    enum_fields = ["type", "apr_type", "payment_type", "loan_program"]
+    for field in enum_fields:
+        if field in debt_dict and hasattr(debt_dict[field], "value"):
+            debt_dict[field] = debt_dict[field].value
     
     debt_dict["created_at"] = datetime.now(timezone.utc)
     debt_dict["updated_at"] = datetime.now(timezone.utc)
@@ -131,16 +135,20 @@ async def update_debt_partial(debt_id: str, debt_update: SimpleDebtUpdate):
             detail="No fields provided for update"
         )
     
-    # Convert date to datetime for MongoDB compatibility
-    if "next_payment_date" in update_dict and isinstance(update_dict["next_payment_date"], date):
-        update_dict["next_payment_date"] = datetime.combine(
-            update_dict["next_payment_date"],
-            datetime.min.time()
-        ).replace(tzinfo=timezone.utc)
+    # Convert all date fields to datetime for MongoDB compatibility
+    date_fields = ["next_payment_date", "origination_date"]
+    for field in date_fields:
+        if field in update_dict and isinstance(update_dict[field], date):
+            update_dict[field] = datetime.combine(
+                update_dict[field],
+                datetime.min.time()
+            ).replace(tzinfo=timezone.utc)
     
-    # Convert enum to string
-    if "type" in update_dict:
-        update_dict["type"] = update_dict["type"].value if hasattr(update_dict["type"], "value") else str(update_dict["type"])
+    # Convert all enums to strings
+    enum_fields = ["type", "apr_type", "payment_type", "loan_program"]
+    for field in enum_fields:
+        if field in update_dict and hasattr(update_dict[field], "value"):
+            update_dict[field] = update_dict[field].value
     
     update_dict["updated_at"] = datetime.now(timezone.utc)
     
@@ -185,16 +193,20 @@ async def update_debt_full(debt_id: str, debt: SimpleDebt):
     # Prepare update data
     update_dict = debt.model_dump(by_alias=True, exclude={"id", "created_at"}, exclude_none=True)
     
-    # Convert date to datetime for MongoDB compatibility
-    if "next_payment_date" in update_dict and isinstance(update_dict["next_payment_date"], date):
-        update_dict["next_payment_date"] = datetime.combine(
-            update_dict["next_payment_date"],
-            datetime.min.time()
-        ).replace(tzinfo=timezone.utc)
+    # Convert all date fields to datetime for MongoDB compatibility
+    date_fields = ["next_payment_date", "origination_date"]
+    for field in date_fields:
+        if field in update_dict and isinstance(update_dict[field], date):
+            update_dict[field] = datetime.combine(
+                update_dict[field],
+                datetime.min.time()
+            ).replace(tzinfo=timezone.utc)
     
-    # Convert enum to string
-    if "type" in update_dict:
-        update_dict["type"] = update_dict["type"].value if hasattr(update_dict["type"], "value") else str(update_dict["type"])
+    # Convert all enums to strings
+    enum_fields = ["type", "apr_type", "payment_type", "loan_program"]
+    for field in enum_fields:
+        if field in update_dict and hasattr(update_dict[field], "value"):
+            update_dict[field] = update_dict[field].value
     
     update_dict["updated_at"] = datetime.now(timezone.utc)
     
@@ -360,16 +372,20 @@ async def import_debts_from_csv(
             # Convert to dict for MongoDB
             debt_dict = debt.model_dump(by_alias=True, exclude={"id"}, exclude_none=True)
             
-            # Convert date to datetime for MongoDB
-            if "next_payment_date" in debt_dict and isinstance(debt_dict["next_payment_date"], date):
-                debt_dict["next_payment_date"] = datetime.combine(
-                    debt_dict["next_payment_date"],
-                    datetime.min.time()
-                ).replace(tzinfo=timezone.utc)
+            # Convert all date fields to datetime for MongoDB compatibility
+            date_fields = ["next_payment_date", "origination_date"]
+            for field in date_fields:
+                if field in debt_dict and isinstance(debt_dict[field], date):
+                    debt_dict[field] = datetime.combine(
+                        debt_dict[field],
+                        datetime.min.time()
+                    ).replace(tzinfo=timezone.utc)
             
-            # Convert enum to string
-            if "type" in debt_dict:
-                debt_dict["type"] = debt_dict["type"].value if hasattr(debt_dict["type"], "value") else str(debt_dict["type"])
+            # Convert all enums to strings
+            enum_fields = ["type", "apr_type", "payment_type", "loan_program"]
+            for field in enum_fields:
+                if field in debt_dict and hasattr(debt_dict[field], "value"):
+                    debt_dict[field] = debt_dict[field].value
             
             debt_dict["created_at"] = datetime.now(timezone.utc)
             debt_dict["updated_at"] = datetime.now(timezone.utc)

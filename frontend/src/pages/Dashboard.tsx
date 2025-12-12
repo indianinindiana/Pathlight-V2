@@ -7,15 +7,11 @@ import MetricsCard from '@/components/MetricsCard';
 import DebtCompositionChart from '@/components/DebtCompositionChart';
 import DebtListTable from '@/components/DebtListTable';
 import DebtEntryForm from '@/components/DebtEntryForm';
-import AlertBanner from '@/components/ui/alert-banner';
-import NextActionCard from '@/components/ui/next-action-card';
-import ConfidenceIndicator from '@/components/ui/confidence-indicator';
 import { ExportDialog } from '@/components/ExportDialog';
 import { FinancialAssessment } from '@/components/FinancialAssessment';
 import { Debt } from '@/types/debt';
 import { calculateTotalDebt, calculateTotalMinimumPayment, calculateDebtToIncome } from '@/utils/debtCalculations';
 import { showSuccess } from '@/utils/toast';
-import { usePersonalization, useNextBestActions, useConfidenceScore } from '@/hooks/usePersonalization';
 import { useFinancialAssessment } from '@/hooks/useFinancialAssessment';
 import { trackPageView } from '@/services/analyticsApi';
 import { getSessionId } from '@/services/sessionManager';
@@ -26,11 +22,6 @@ const Dashboard = () => {
   const { debts, financialContext, addDebt, updateDebt, deleteDebt, profileId } = useDebt();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingDebt, setEditingDebt] = useState<Debt | null>(null);
-
-  // Use personalization hooks
-  const { alerts } = usePersonalization();
-  const { actions, isLoading: actionsLoading } = useNextBestActions();
-  const { confidence } = useConfidenceScore();
 
   // Use financial assessment hook
   const { data: assessmentData, loading: assessmentLoading, error: assessmentError } = useFinancialAssessment({
@@ -142,13 +133,6 @@ const Dashboard = () => {
             </div>
             <div className="flex items-center gap-3">
               {profileId && <ExportDialog profileId={profileId} />}
-              {confidence && (
-                <ConfidenceIndicator
-                  level={confidence.level}
-                  factors={confidence.factors}
-                  explanation={confidence.suggestions[0]}
-                />
-              )}
             </div>
           </div>
         </div>
@@ -164,45 +148,6 @@ const Dashboard = () => {
             Here's an overview of your current debt situation
           </p>
         </div>
-
-        {/* Personalized Alerts */}
-        {alerts.length > 0 && (
-          <div className="space-y-4 mb-8">
-            {alerts.map((alert, index) => (
-              <AlertBanner
-                key={index}
-                type={alert.type}
-                condition={alert.condition}
-              >
-                {alert.message}
-              </AlertBanner>
-            ))}
-          </div>
-        )}
-
-        {/* Next Best Actions */}
-        {actions.length > 0 && !actionsLoading && (
-          <div className="mb-8">
-            <h3 className="text-xl font-semibold text-[#002B45] mb-4">
-              Your Next Best Actions
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {actions.map((action) => (
-                <NextActionCard
-                  key={action.priority}
-                  priority={action.priority}
-                  title={action.title}
-                  description={action.description}
-                  impact={action.impact}
-                  cta={action.cta}
-                  onAction={() => handleActionClick(action.action)}
-                  progress={action.progress}
-                  confidence={action.confidence}
-                />
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Add/Edit Form */}
         {showAddForm && (
@@ -262,45 +207,8 @@ const Dashboard = () => {
         </div>
 
         {/* Visualizations */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="mb-8">
           <DebtCompositionChart debts={debts} />
-          
-          <div className="bg-white border-[1.5px] border-[#D4DFE4] rounded-xl p-6">
-            <h3 className="text-xl font-semibold text-[#002B45] mb-4">Quick Insights</h3>
-            <div className="space-y-4">
-              <div className="p-4 bg-[#E7F7F4] rounded-lg">
-                <p className="text-sm font-medium text-[#002B45] mb-1">Highest Interest Debt</p>
-                <p className="text-lg font-semibold text-[#009A8C]">
-                  {debts.reduce((max, debt) => debt.apr > max.apr ? debt : max).name} ({debts.reduce((max, debt) => debt.apr > max.apr ? debt : max).apr}%)
-                </p>
-              </div>
-              
-              <div className="p-4 bg-blue-50 rounded-lg">
-                <p className="text-sm font-medium text-[#002B45] mb-1">Largest Balance</p>
-                <p className="text-lg font-semibold text-blue-600">
-                  {debts.reduce((max, debt) => debt.balance > max.balance ? debt : max).name} (${debts.reduce((max, debt) => debt.balance > max.balance ? debt : max).balance.toLocaleString()})
-                </p>
-              </div>
-              
-              {financialContext && netCashFlow > 0 && (
-                <div className="p-4 bg-green-50 rounded-lg">
-                  <p className="text-sm font-medium text-[#002B45] mb-1">Available for Extra Payments</p>
-                  <p className="text-lg font-semibold text-green-600">
-                    ${netCashFlow.toLocaleString()}/month
-                  </p>
-                </div>
-              )}
-              
-              {financialContext && netCashFlow <= 0 && (
-                <div className="p-4 bg-orange-50 rounded-lg">
-                  <p className="text-sm font-medium text-[#002B45] mb-1">Budget Adjustment Needed</p>
-                  <p className="text-sm text-orange-700">
-                    Your current expenses exceed income after minimum payments. Consider reviewing your budget or exploring debt relief options.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
         </div>
 
         {/* Consolidated Financial Assessment with Clara Q&A */}
@@ -335,24 +243,6 @@ const Dashboard = () => {
             }}
             onUpdatePriority={handleUpdatePriority}
           />
-        </div>
-
-        {/* CTA Section */}
-        <div className="bg-white border-[1.5px] border-[#D4DFE4] rounded-xl p-8 text-center">
-          <h3 className="text-2xl font-bold text-[#002B45] mb-3">
-            Ready to see your payoff options?
-          </h3>
-          <p className="text-[#3A4F61] mb-6 max-w-2xl mx-auto">
-            Compare different strategies and see how quickly you can become debt-free
-          </p>
-          <Button
-            size="lg"
-            onClick={() => navigate('/scenarios')}
-            className="bg-[#009A8C] hover:bg-[#007F74] text-white font-semibold text-[18px] py-5 px-12 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 hover:scale-[1.02]"
-          >
-            Explore Payoff Scenarios
-            <ArrowRight className="ml-2 w-5 h-5" />
-          </Button>
         </div>
       </div>
     </div>
