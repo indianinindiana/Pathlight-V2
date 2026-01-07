@@ -43,23 +43,66 @@ Created [`render.yaml`](render.yaml:1) with two services:
 ## Environment Variables
 
 ### Frontend
-Set these in Render dashboard:
-- `VITE_API_BASE_URL` - URL of your backend service (e.g., `https://pathlight-backend.onrender.com`)
+The frontend will automatically connect to the backend service when deployed via [`render.yaml`](render.yaml:14). The `VITE_API_BASE_URL` is automatically set using Render's service-to-service communication.
+
+**Local Development:**
+- Uses [`frontend/.env`](frontend/.env:1) with `VITE_API_BASE_URL=http://localhost:8000`
+
+**Production:**
+- Uses [`frontend/.env.production`](frontend/.env.production:1)
+- `VITE_API_BASE_URL` is automatically set by Render to point to the backend service
+- Frontend URL: `https://pathlight-v2-frontend.onrender.com`
 
 ### Backend
-Set these in Render dashboard:
-- `MONGODB_URI` - MongoDB connection string
-- `GEMINI_API_KEY` - Google Gemini API key
-- `JWT_SECRET_KEY` - Secret key for JWT tokens
+Set these environment variables in Render dashboard or via [`render.yaml`](render.yaml:27):
+
+**Required:**
+- `DATABASE_URL` - MongoDB connection string (e.g., `mongodb+srv://user:pass@cluster.mongodb.net/dbname`)
+- `GEMINI_API_KEY` - Google Gemini API key (get from https://makersuite.google.com/app/apikey)
+
+**Optional (with defaults):**
+- `LLM_PROVIDER` - AI provider to use (default: `gemini`)
+- `GEMINI_MODEL` - Gemini model version (default: `gemini-2.5-flash`)
+- `ANTHROPIC_API_KEY` - Claude API key (optional)
+- `CLAUDE_MODEL` - Claude model version (default: `claude-3-5-haiku-20241022`)
+- `OPENAI_API_KEY` - OpenAI API key (optional)
+- `OPENAI_MODEL` - OpenAI model version (default: `gpt-4o-mini`)
+
+**CORS Configuration:**
+The backend is pre-configured in [`backend/main.py`](backend/main.py:28) to allow:
+- Local development: `http://localhost:5173`, `http://localhost:3000`, etc.
+- Production: `https://pathlight-v2-frontend.onrender.com`
 
 ## Deployment Steps
 
 ### Option 1: Using Render.yaml (Recommended)
-1. Push code to GitHub
-2. Connect repository to Render
-3. Render will automatically detect `render.yaml` and create both services
-4. Set environment variables in Render dashboard
-5. Deploy
+1. **Push code to GitHub**
+   ```bash
+   git add .
+   git commit -m "Configure production environment"
+   git push origin main
+   ```
+
+2. **Connect repository to Render**
+   - Go to [Render Dashboard](https://dashboard.render.com)
+   - Click "New +" → "Blueprint"
+   - Connect your GitHub repository
+   - Render will detect [`render.yaml`](render.yaml:1) automatically
+
+3. **Configure Environment Variables**
+   
+   For the **backend service** (`pathlight-backend`), set these in Render dashboard:
+   - `DATABASE_URL` - Your MongoDB connection string
+   - `GEMINI_API_KEY` - Your Google Gemini API key
+   - (Optional) `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` if using other providers
+
+   The frontend service will automatically receive `VITE_API_BASE_URL` from the backend service.
+
+4. **Deploy**
+   - Click "Apply" to create both services
+   - Render will build and deploy both frontend and backend
+   - Frontend will be available at: `https://pathlight-v2-frontend.onrender.com`
+   - Backend will be available at: `https://pathlight-backend.onrender.com`
 
 ### Option 2: Manual Setup
 1. Create Frontend Service:
@@ -109,8 +152,15 @@ python -m uvicorn main:app --host 0.0.0.0 --port 8000
 - Backend: Uses port 8000 or `$PORT`
 
 ### CORS Issues
-- Ensure backend CORS configuration includes frontend URL
-- Update `VITE_API_BASE_URL` to point to correct backend URL
+- Backend CORS is pre-configured in [`backend/main.py`](backend/main.py:28) for production URL
+- If using a different frontend URL, update the `allow_origins` list in [`backend/main.py`](backend/main.py:28)
+- Verify `VITE_API_BASE_URL` points to the correct backend URL (automatically set by Render)
+
+### Environment Variable Issues
+- Ensure all required environment variables are set in Render dashboard
+- Check Render logs for missing environment variable errors
+- Verify `DATABASE_URL` format matches MongoDB connection string requirements
+- Confirm API keys are valid and have proper permissions
 
 ## Performance Optimization
 

@@ -29,7 +29,8 @@ app.add_middleware(
         "http://localhost:5173",
         "http://localhost:5137",
         "http://localhost:3000",
-        "http://localhost:32100"
+        "http://localhost:32100",
+        "https://pathlight-v2-frontend.onrender.com"
     ],  # Frontend URLs
     allow_credentials=True,
     allow_methods=["*"],  # Allow all methods (GET, POST, PUT, DELETE, PATCH, OPTIONS, etc.)
