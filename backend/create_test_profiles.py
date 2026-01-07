@@ -30,9 +30,12 @@ async def create_test_profiles():
         "stress_level": 3,
         "monthly_income": 5500,
         "monthly_expenses": 4200,
+        "liquid_savings": 2500,
+        "credit_score_range": "670-739",
         "primary_goal": "pay-faster",
         "employment_status": "full-time",
         "age_range": "25-34",
+        "life_events": ["new-job"],
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow()
     }
@@ -111,9 +114,12 @@ async def create_test_profiles():
         "stress_level": 4,
         "monthly_income": 8500,
         "monthly_expenses": 6800,
+        "liquid_savings": 5000,
+        "credit_score_range": "740-799",
         "primary_goal": "reduce-interest",
         "employment_status": "full-time",
         "age_range": "35-44",
+        "life_events": ["bought-home", "had-child"],
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow()
     }
@@ -209,9 +215,12 @@ async def create_test_profiles():
         "stress_level": 5,
         "monthly_income": 4200,
         "monthly_expenses": 3800,
+        "liquid_savings": 300,
+        "credit_score_range": "580-669",
         "primary_goal": "avoid-default",
         "employment_status": "part-time",
         "age_range": "25-34",
+        "life_events": ["job-loss", "medical-emergency"],
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow()
     }
@@ -316,9 +325,12 @@ async def create_test_profiles():
         "stress_level": 2,
         "monthly_income": 12000,
         "monthly_expenses": 8500,
+        "liquid_savings": 15000,
+        "credit_score_range": "740-799",
         "primary_goal": "pay-faster",
         "employment_status": "full-time",
         "age_range": "45-59",
+        "life_events": ["career-change"],
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow()
     }
