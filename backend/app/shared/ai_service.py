@@ -221,11 +221,23 @@ class AIService:
         """
         try:
             # Prepare context
-            total_debt = sum(d.get("balance", 0) for d in debt_data)
-            debt_count = len(debt_data)
+            total_debt = sum(d.get("balance", 0) for d in debt_data) if debt_data else 0
+            debt_count = len(debt_data) if debt_data else 0
             
             # Get prompt template
             template = self.config.get_prompt_template("qa", "general_question")
+            
+            # If no template found, use a simple default
+            if not template:
+                template = """User question: {question}
+
+Context:
+- Total debt: ${total_debt}
+- Number of debts: {debt_count}
+- Primary goal: {primary_goal}
+- Current strategy: {current_strategy}
+
+Please provide a helpful, personalized answer based on this context."""
             
             # Fill in template
             prompt = template.format(
@@ -239,29 +251,51 @@ class AIService:
             # Get system prompt
             system_prompt = self.config.get_system_prompt("ask")
             
-            # Generate response
+            # Generate response with increased token limit for complete JSON
+            logger.info(f"Sending prompt to LLM: {prompt[:200]}...")  # Log first 200 chars
             response_data = await self.provider.generate_json(
                 prompt=prompt,
                 system_prompt=system_prompt,
                 temperature=0.7,
-                max_tokens=1000
+                max_tokens=2000  # Increased to ensure complete JSON responses
             )
+            logger.info(f"Received response from LLM: {response_data}")
             
             # Sanitize content
             if "answer" in response_data:
                 response_data["answer"] = sanitize_ai_content(response_data["answer"])
             
+            # Ensure arrays don't exceed limits
+            if "next_steps" in response_data and isinstance(response_data["next_steps"], list):
+                response_data["next_steps"] = response_data["next_steps"][:5]  # Max 5
+            if "related_topics" in response_data and isinstance(response_data["related_topics"], list):
+                response_data["related_topics"] = response_data["related_topics"][:4]  # Max 4
+            
             # Validate and create response
-            if validate_ai_response(response_data, "qa"):
+            try:
                 content = QAResponseContent(**response_data)
                 return QAResponse(response=content)
-            else:
-                raise ValueError("Invalid response structure from LLM")
+            except Exception as validation_error:
+                logger.error(f"Pydantic validation failed: {validation_error}")
+                logger.error(f"Response data: {response_data}")
+                raise ValueError(f"Invalid response structure from LLM: {validation_error}")
                 
         except Exception as e:
-            logger.error(f"Error answering question: {e}")
-            # Return fallback response
-            fallback = self.config.get_fallback_response("qa")
+            logger.error(f"Error answering question: {e}", exc_info=True)
+            
+            # Create a helpful, context-aware fallback response
+            fallback = {
+                "answer": "I'd love to help answer that! However, I'm having a temporary issue connecting to my knowledge base right now. While I work on that, here are some general debt management principles:\n\n• Paying off high-interest debt first (avalanche method) typically saves the most money\n• Paying off smallest balances first (snowball method) can provide quick wins and motivation\n• Making extra payments beyond minimums accelerates your debt-free date\n• Consider your personal goals and what motivates you most\n\nPlease try asking your question again in a moment, or feel free to explore your Dashboard for personalized insights!",
+                "context": "This is a general response due to a temporary service issue",
+                "next_steps": [
+                    "Try asking your question again",
+                    "Explore your personalized Dashboard insights",
+                    "Review your debt payoff strategies"
+                ],
+                "related_topics": ["Debt Payoff Strategies", "Interest Savings", "Payment Planning"],
+                "confidence": "low"
+            }
+            
             content = QAResponseContent(**fallback)
             return QAResponse(response=content)
     
@@ -425,26 +459,13 @@ class AIService:
                 prompt=prompt,
                 system_prompt=system_prompt,
                 temperature=0.8,
-                max_tokens=150  # Keep it short
+                max_tokens=500  # Increased to allow full responses
             )
             
             # Sanitize and validate
             clara_message = sanitize_ai_content(response_text)
             
-            # Ensure it's not too long (max 2 sentences)
-            sentence_count = clara_message.count('.') + clara_message.count('!') + clara_message.count('?')
-            if sentence_count > 2:
-                # Truncate to first 2 sentences
-                sentences = []
-                for char in ['.', '!', '?']:
-                    if char in clara_message:
-                        parts = clara_message.split(char)
-                        for i, part in enumerate(parts[:2]):
-                            if part.strip():
-                                sentences.append(part.strip() + char)
-                        break
-                clara_message = ' '.join(sentences[:2])
-            
+            # Return the full message without truncation
             return clara_message
                 
         except Exception as e:

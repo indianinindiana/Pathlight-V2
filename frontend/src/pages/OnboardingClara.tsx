@@ -160,14 +160,14 @@ const OnboardingClara = () => {
         
         {/* Clara's empathetic reaction - left-aligned with avatar and fade-in */}
         {claraMessage && (
-          <div className="flex items-start gap-3 animate-in fade-in slide-in-from-left-2 duration-300">
+          <div className="flex items-start gap-3 animate-in fade-in slide-in-from-left-2 duration-300 max-w-[85%]">
             <img
               src="/clara-avatar.png"
               alt="Clara"
               className="w-8 h-8 rounded-full flex-shrink-0"
             />
-            <div className="flex-1 bg-[#E7F7F4] rounded-lg p-4 max-w-[85%]">
-              <p className="text-[14px] text-[#3A4F61]">{claraMessage}</p>
+            <div className="flex-1 bg-[#E7F7F4] rounded-lg p-4">
+              <p className="text-[14px] text-[#3A4F61] whitespace-pre-wrap break-words">{claraMessage}</p>
             </div>
           </div>
         )}
@@ -235,14 +235,14 @@ const OnboardingClara = () => {
       {isComplete && (
         <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {/* Clara's final message */}
-          <div className="flex items-start gap-3">
+          <div className="flex items-start gap-3 max-w-[85%]">
             <img
               src="/clara-avatar.png"
               alt="Clara"
               className="w-8 h-8 rounded-full flex-shrink-0"
             />
-            <div className="flex-1 bg-[#E7F7F4] rounded-lg p-4 max-w-[85%]">
-              <p className="text-[14px] text-[#3A4F61]">
+            <div className="flex-1 bg-[#E7F7F4] rounded-lg p-4">
+              <p className="text-[14px] text-[#3A4F61] whitespace-pre-wrap break-words">
                 Thanks for sharing all that. I'm excited to help you from here.
               </p>
               <p className="text-[12px] text-[#4F6A7A] mt-2 italic">— Clara</p>

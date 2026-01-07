@@ -230,7 +230,9 @@ const DebtEntryForm = ({ onAdd, onCancel, editingDebt, onUpdate }: DebtEntryForm
       try {
         const result = await getSuggestedMinimumPayment(
           parseFloat(formData.balance),
-          parseFloat(formData.apr)
+          parseFloat(formData.apr),
+          formData.type,
+          formData.termMonths ? parseInt(formData.termMonths) : undefined
         );
         setFormData({ ...formData, minimumPayment: result.suggested_minimum_payment.toFixed(2) });
         setShowMinPaymentWarning(false);
@@ -241,7 +243,9 @@ const DebtEntryForm = ({ onAdd, onCancel, editingDebt, onUpdate }: DebtEntryForm
     }
   };
 
-  const isFormValid = formData.name && formData.balance && formData.apr && formData.minimumPayment;
+  const isInstallmentLoan = ['auto-loan', 'mortgage', 'student-loan', 'personal-loan', 'installment-loan'].includes(formData.type);
+  const isFormValid = formData.name && formData.balance && formData.apr && formData.minimumPayment &&
+    (!isInstallmentLoan || formData.termMonths);
 
   const renderAdvancedFields = () => {
     const commonFields = (
@@ -289,31 +293,17 @@ const DebtEntryForm = ({ onAdd, onCancel, editingDebt, onUpdate }: DebtEntryForm
 
     const loanFields = (
       <>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="originalPrincipal" className="text-[#002B45] font-medium">Original Loan Amount (Optional)</Label>
-            <Input
-              id="originalPrincipal"
-              type="number"
-              step="0.01"
-              placeholder="25000.00"
-              value={formData.originalPrincipal}
-              onChange={(e) => setFormData({ ...formData, originalPrincipal: e.target.value })}
-              className="border-[#D4DFE4]"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="termMonths" className="text-[#002B45] font-medium">Loan Term (Months) (Optional)</Label>
-            <Input
-              id="termMonths"
-              type="number"
-              placeholder="60"
-              value={formData.termMonths}
-              onChange={(e) => setFormData({ ...formData, termMonths: e.target.value })}
-              className="border-[#D4DFE4]"
-            />
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="originalPrincipal" className="text-[#002B45] font-medium">Original Loan Amount (Optional)</Label>
+          <Input
+            id="originalPrincipal"
+            type="number"
+            step="0.01"
+            placeholder="25000.00"
+            value={formData.originalPrincipal}
+            onChange={(e) => setFormData({ ...formData, originalPrincipal: e.target.value })}
+            className="border-[#D4DFE4]"
+          />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -522,6 +512,27 @@ const DebtEntryForm = ({ onAdd, onCancel, editingDebt, onUpdate }: DebtEntryForm
             </div>
           </div>
 
+          {/* Term field for installment loans - required */}
+          {['auto-loan', 'mortgage', 'student-loan', 'personal-loan', 'installment-loan'].includes(formData.type) && (
+            <div className="space-y-2">
+              <Label htmlFor="termMonths" className="text-[#002B45] font-medium">
+                Loan Term (Months) <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="termMonths"
+                type="number"
+                placeholder="60"
+                value={formData.termMonths}
+                onChange={(e) => setFormData({ ...formData, termMonths: e.target.value })}
+                className="border-[#D4DFE4]"
+                required
+              />
+              <p className="text-sm text-[#4F6A7A]">
+                Needed to calculate your correct monthly payment amount
+              </p>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="minimumPayment" className="text-[#002B45] font-medium">
@@ -544,9 +555,8 @@ const DebtEntryForm = ({ onAdd, onCancel, editingDebt, onUpdate }: DebtEntryForm
                   type="button"
                   variant="outline"
                   onClick={handleSuggestMinPayment}
-                  disabled={!formData.balance || !formData.apr}
+                  disabled={!formData.balance || !formData.apr || isValidating}
                   className="whitespace-nowrap"
-                  disabled={isValidating}
                 >
                   {isValidating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Suggest'}
                 </Button>

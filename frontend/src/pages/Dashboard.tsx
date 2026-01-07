@@ -19,7 +19,7 @@ import { Goal, StressLevel, EmploymentStatus, LifeEvent, AgeRange } from '@/type
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { debts, financialContext, addDebt, updateDebt, deleteDebt, profileId } = useDebt();
+  const { debts, financialContext, addDebt, updateDebt, deleteDebt, profileId, journeyState } = useDebt();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingDebt, setEditingDebt] = useState<Debt | null>(null);
 
@@ -65,13 +65,13 @@ const Dashboard = () => {
     ? financialContext.liquidSavings / financialContext.monthlyExpenses
     : 0;
 
-  const handleAddDebt = (debt: Debt) => {
-    addDebt(debt);
+  const handleAddDebt = async (debt: Omit<Debt, 'id'>) => {
+    await addDebt(debt);
     setShowAddForm(false);
   };
 
-  const handleUpdateDebt = (id: string, updates: Partial<Debt>) => {
-    updateDebt(id, updates);
+  const handleUpdateDebt = async (id: string, updates: Partial<Debt>) => {
+    await updateDebt(id, updates);
     setEditingDebt(null);
   };
 
@@ -142,10 +142,12 @@ const Dashboard = () => {
       <div className="container mx-auto px-4 py-8 md:py-12 max-w-7xl">
         <div className="mb-8">
           <h2 className="text-[28px] md:text-[36px] font-bold text-[#002B45] mb-3">
-            Your Debt Snapshot
+            {journeyState === 'snapshot_generated' ? 'Your Debt Snapshot' : 'Dashboard'}
           </h2>
           <p className="text-[16px] md:text-[18px] text-[#3A4F61]">
-            Here's an overview of your current debt situation
+            {journeyState === 'snapshot_generated'
+              ? "Here's an overview of your current debt situation"
+              : "Manage your debts and track your progress"}
           </p>
         </div>
 

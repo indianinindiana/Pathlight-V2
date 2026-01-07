@@ -81,9 +81,9 @@ class InsightsResponse(AIResponse):
 
 class QAResponseContent(BaseModel):
     """Content structure for Q&A responses"""
-    answer: str = Field(..., max_length=500, description="Direct answer to the question")
-    context: Optional[str] = Field(default=None, max_length=300, description="How this applies to their situation")
-    next_steps: Optional[List[str]] = Field(default=None, max_items=3, description="Actionable next steps")
+    answer: str = Field(..., max_length=1000, description="Direct answer to the question")
+    context: Optional[str] = Field(default=None, max_length=600, description="How this applies to their situation")
+    next_steps: Optional[List[str]] = Field(default=None, max_items=5, description="Actionable next steps")
     related_topics: Optional[List[str]] = Field(default=None, max_items=4, description="Related topics to explore")
     confidence: Optional[Literal["high", "medium", "low"]] = Field(default=None, description="Confidence in the answer")
     
@@ -317,7 +317,7 @@ def get_fallback_response(response_type: str) -> Dict[str, Any]:
             ]
         },
         "qa": {
-            "answer": "I'm having trouble generating a response right now. Please try rephrasing your question or contact support for assistance.",
+            "answer": "I'm having trouble generating a response right now. Please try rephrasing your question.",
             "confidence": "low"
         },
         "onboarding": {

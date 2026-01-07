@@ -73,12 +73,34 @@ export const orderDebtsByStrategy = (debts: Debt[], strategy: PayoffStrategy): D
       return sortedDebts.sort((a, b) => b.apr - a.apr);
     
     case 'custom':
-      // Use custom order if set, otherwise by balance
+      // Hybrid approach: Balance high-interest debts with psychological wins
+      // Use custom order if set, otherwise use hybrid logic
+      if (sortedDebts.some(d => d.customOrder !== undefined)) {
+        return sortedDebts.sort((a, b) => {
+          if (a.customOrder !== undefined && b.customOrder !== undefined) {
+            return a.customOrder - b.customOrder;
+          }
+          return a.balance - b.balance;
+        });
+      }
+      
+      // Hybrid logic: Prioritize debts with high APR AND low balance
+      // Calculate a hybrid score: (APR weight * APR) + (Balance weight * normalized balance)
+      const maxBalance = Math.max(...sortedDebts.map(d => d.balance));
+      const maxAPR = Math.max(...sortedDebts.map(d => d.apr));
+      
       return sortedDebts.sort((a, b) => {
-        if (a.customOrder !== undefined && b.customOrder !== undefined) {
-          return a.customOrder - b.customOrder;
-        }
-        return a.balance - b.balance;
+        // Normalize values to 0-1 range
+        const aNormalizedBalance = 1 - (a.balance / maxBalance); // Invert so smaller is better
+        const aNormalizedAPR = a.apr / maxAPR;
+        const bNormalizedBalance = 1 - (b.balance / maxBalance);
+        const bNormalizedAPR = b.apr / maxAPR;
+        
+        // Hybrid score: 60% APR weight, 40% balance weight
+        const aScore = (0.6 * aNormalizedAPR) + (0.4 * aNormalizedBalance);
+        const bScore = (0.6 * bNormalizedAPR) + (0.4 * bNormalizedBalance);
+        
+        return bScore - aScore; // Higher score first
       });
     
     default:
@@ -93,6 +115,7 @@ export const calculatePayoffScenario = (
   startDate: Date = new Date()
 ): PayoffScenario => {
   const orderedDebts = orderDebtsByStrategy(debts, strategy);
+  console.log(`${strategy} order:`, orderedDebts.map(d => `${d.name} ($${d.balance} @ ${d.apr}%)`));
   const schedule: PayoffScheduleItem[] = [];
   
   // Create working copies of debts with tracking fields

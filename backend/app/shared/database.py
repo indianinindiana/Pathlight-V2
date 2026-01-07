@@ -49,7 +49,7 @@ class Database:
         """Get the database instance"""
         if not cls.client:
             raise ValueError("Database not connected. Call connect_db() first.")
-        return cls.client.pathfinder
+        return cls.client.pathlight
     
     @classmethod
     def get_collection(cls, collection_name: str):

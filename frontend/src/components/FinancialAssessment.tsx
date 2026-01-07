@@ -52,7 +52,7 @@ const getRiskIcon = (riskBand: RiskBand) => {
 };
 
 export function FinancialAssessment({ data, loading, error, profileId, context, onActionClick }: FinancialAssessmentProps) {
-  const [showQA, setShowQA] = useState(false);
+  const [showQA, setShowQA] = useState(true); // Expanded by default
   const [question, setQuestion] = useState('');
   const [isAsking, setIsAsking] = useState(false);
   const [qaResponse, setQaResponse] = useState<string | null>(null);
@@ -280,13 +280,6 @@ export function FinancialAssessment({ data, loading, error, profileId, context, 
           </div>
         )}
 
-        {/* Closing Message */}
-        {personalized_ux.closing_message && (
-          <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
-            <p className="text-sm text-[#002B45]">{personalized_ux.closing_message}</p>
-          </div>
-        )}
-
         {/* Ask Clara Section */}
         {profileId && (
           <div className="pt-4 border-t border-gray-200">
@@ -386,12 +379,6 @@ export function FinancialAssessment({ data, loading, error, profileId, context, 
             )}
           </div>
         )}
-
-        {/* Metadata */}
-        <div className="text-xs text-[#3A4F61] pt-4 border-t border-gray-200">
-          <p>Assessment generated: {new Date(data.generated_at).toLocaleString()}</p>
-          <p>Version: {data.assessment_version}</p>
-        </div>
       </CardContent>
     </Card>
   );

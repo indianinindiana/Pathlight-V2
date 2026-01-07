@@ -1,9 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Debt, FinancialContext, PayoffScenario, WhatIfScenario, ProductRecommendation, AIGuidance } from '@/types/debt';
 import * as debtApi from '@/services/debtApi';
-import { getProfileId, getSessionId } from '@/services/sessionManager';
+import { getProfileId, getSessionId, setProfileId as saveProfileId } from '@/services/sessionManager';
 import { showSuccess, showError } from '@/utils/toast';
 import { trackEvent, checkMilestones } from '@/services/analyticsApi';
+
+// User Journey State Type
+export type UserJourneyState =
+  | 'new'                    // Anonymous/new user, no debts
+  | 'debt_entry_started'     // Onboarding complete, debts being entered
+  | 'snapshot_generated';    // Debts entered, snapshot available
 
 interface DebtContextType {
   // Financial Context
@@ -45,6 +51,10 @@ interface DebtContextType {
   profileId: string | null;
   setProfileId: (id: string | null) => void;
   
+  // Journey State
+  journeyState: UserJourneyState;
+  setJourneyState: (state: UserJourneyState) => void;
+  
   // Utility
   clearSession: () => void;
 }
@@ -62,6 +72,18 @@ export const DebtProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [calibrationComplete, setCalibrationCompleteState] = useState(false);
   const [profileId, setProfileIdState] = useState<string | null>(null);
   const [isLoadingDebts, setIsLoadingDebts] = useState(false);
+  
+  // Journey State with localStorage persistence
+  const [journeyState, setJourneyStateInternal] = useState<UserJourneyState>(() => {
+    const saved = localStorage.getItem('journey_state');
+    return (saved as UserJourneyState) || 'new';
+  });
+  
+  // Wrapper to persist to localStorage
+  const setJourneyState = (state: UserJourneyState) => {
+    setJourneyStateInternal(state);
+    localStorage.setItem('journey_state', state);
+  };
 
   // Load debts from backend when profile is available
   const loadDebts = async () => {
@@ -109,21 +131,50 @@ export const DebtProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Load from localStorage on mount and load debts from backend
+  // Also check for profileId in URL parameters
   useEffect(() => {
-    const saved = localStorage.getItem('debtPathfinderSession');
-    if (saved) {
-      try {
-        const data = JSON.parse(saved);
-        if (data.financialContext) setFinancialContextState(data.financialContext);
-        if (data.onboardingComplete) setOnboardingCompleteState(data.onboardingComplete);
-        if (data.profileId) setProfileIdState(data.profileId);
-      } catch (e) {
-        console.error('Failed to load session:', e);
+    // Check for profile ID in URL first
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlProfileId = urlParams.get('profileId') || urlParams.get('profile_id');
+    
+    if (urlProfileId) {
+      // Load profile from URL parameter
+      console.log('Loading profile from URL:', urlProfileId);
+      setProfileIdState(urlProfileId);
+      
+      // Save to sessionManager
+      saveProfileId(urlProfileId);
+      
+      // Save to localStorage
+      const data = {
+        profileId: urlProfileId,
+        onboardingComplete: true,
+        calibrationComplete: true
+      };
+      localStorage.setItem('debtPathfinderSession', JSON.stringify(data));
+      
+      // Clear URL parameter after loading (optional - keeps URL clean)
+      window.history.replaceState({}, '', window.location.pathname);
+      
+      // Load debts for this profile
+      setTimeout(() => loadDebts(), 100);
+    } else {
+      // Load from localStorage
+      const saved = localStorage.getItem('debtPathfinderSession');
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          if (data.financialContext) setFinancialContextState(data.financialContext);
+          if (data.onboardingComplete) setOnboardingCompleteState(data.onboardingComplete);
+          if (data.profileId) setProfileIdState(data.profileId);
+        } catch (e) {
+          console.error('Failed to load session:', e);
+        }
       }
-    }
 
-    // Load debts from backend if profile exists
-    loadDebts();
+      // Load debts from backend if profile exists
+      loadDebts();
+    }
   }, []);
 
   // Save to localStorage on changes
@@ -137,6 +188,13 @@ export const DebtProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     localStorage.setItem('debtPathfinderSession', JSON.stringify(data));
   }, [financialContext, debts, onboardingComplete, calibrationComplete, profileId]);
+  
+  // Update journey state based on debts
+  useEffect(() => {
+    if (debts.length > 0 && journeyState === 'debt_entry_started') {
+      setJourneyState('snapshot_generated');
+    }
+  }, [debts.length, journeyState]);
 
   const setFinancialContext = (context: FinancialContext) => {
     setFinancialContextState(context);
@@ -387,7 +445,14 @@ export const DebtProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setOnboardingCompleteState(false);
     setCalibrationCompleteState(false);
     setProfileIdState(null);
+    setJourneyState('new');
     localStorage.removeItem('debtPathfinderSession');
+    localStorage.removeItem('journey_state');
+    
+    // Clear legacy conversational storage
+    sessionStorage.removeItem('onboarding_answers');
+    sessionStorage.removeItem('onboarding_step');
+    sessionStorage.removeItem('onboarding_timestamp');
   };
 
   return (
@@ -417,6 +482,8 @@ export const DebtProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCalibrationComplete,
       profileId,
       setProfileId,
+      journeyState,
+      setJourneyState,
       clearSession
     }}>
       {children}

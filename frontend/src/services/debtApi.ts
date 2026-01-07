@@ -261,14 +261,20 @@ export async function validateDebt(debtData: {
  */
 export async function getSuggestedMinimumPayment(
   balance: number,
-  apr: number
+  apr: number,
+  type?: string,
+  termMonths?: number
 ): Promise<SuggestedPaymentResponse> {
+  const body: any = { balance, apr };
+  if (type) body.type = type;
+  if (termMonths) body.term_months = termMonths;
+
   const response = await fetch(`${API_BASE_URL}/api/v1/debts/suggest-minimum-payment`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ balance, apr }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {

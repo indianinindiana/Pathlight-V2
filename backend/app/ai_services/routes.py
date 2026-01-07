@@ -66,15 +66,16 @@ async def generate_insights(request: InsightsRequest):
         # Get database
         db = await get_database()
         
-        # Fetch profile - try both profile_id and _id fields
+        # Fetch profile using MongoDB ObjectId
         from bson import ObjectId
-        profile = await db.profiles.find_one({"profile_id": request.profile_id})
-        if not profile:
-            # Try using the request.profile_id as MongoDB ObjectId
-            try:
-                profile = await db.profiles.find_one({"_id": ObjectId(request.profile_id)})
-            except:
-                pass
+        try:
+            profile = await db.profiles.find_one({"_id": ObjectId(request.profile_id)})
+        except Exception as e:
+            logger.error(f"Invalid profile_id format: {request.profile_id}, error: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid profile ID format: {request.profile_id}"
+            )
         
         if not profile:
             raise HTTPException(
@@ -82,7 +83,7 @@ async def generate_insights(request: InsightsRequest):
                 detail=f"Profile not found: {request.profile_id}"
             )
         
-        # Fetch debts
+        # Fetch debts using the profile_id (which is the MongoDB _id as string)
         debts_cursor = db.debts.find({"profile_id": request.profile_id})
         debts = await debts_cursor.to_list(length=100)
         
@@ -158,15 +159,16 @@ async def ask_question(request: QARequest):
         # Get database
         db = await get_database()
         
-        # Fetch profile - try both profile_id and _id fields
+        # Fetch profile using MongoDB ObjectId
         from bson import ObjectId
-        profile = await db.profiles.find_one({"profile_id": request.profile_id})
-        if not profile:
-            # Try using the request.profile_id as MongoDB ObjectId
-            try:
-                profile = await db.profiles.find_one({"_id": ObjectId(request.profile_id)})
-            except:
-                pass
+        try:
+            profile = await db.profiles.find_one({"_id": ObjectId(request.profile_id)})
+        except Exception as e:
+            logger.error(f"Invalid profile_id format: {request.profile_id}, error: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid profile ID format: {request.profile_id}"
+            )
         
         if not profile:
             raise HTTPException(
@@ -174,7 +176,7 @@ async def ask_question(request: QARequest):
                 detail=f"Profile not found: {request.profile_id}"
             )
         
-        # Fetch debts
+        # Fetch debts using the profile_id (which is the MongoDB _id as string)
         debts_cursor = db.debts.find({"profile_id": request.profile_id})
         debts = await debts_cursor.to_list(length=100)
         
@@ -194,10 +196,13 @@ async def ask_question(request: QARequest):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error answering question: {e}")
+        logger.error(f"Error answering question: {e}", exc_info=True)
+        # Log the full traceback for debugging
+        import traceback
+        logger.error(f"Full traceback: {traceback.format_exc()}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to answer question. Please try again."
+            detail=f"Failed to answer question: {str(e)}"
         )
 
 
@@ -233,15 +238,16 @@ async def compare_strategies(request: StrategyComparisonRequest):
         # Get database
         db = await get_database()
         
-        # Fetch profile - try both profile_id and _id fields
+        # Fetch profile using MongoDB ObjectId
         from bson import ObjectId
-        profile = await db.profiles.find_one({"profile_id": request.profile_id})
-        if not profile:
-            # Try using the request.profile_id as MongoDB ObjectId
-            try:
-                profile = await db.profiles.find_one({"_id": ObjectId(request.profile_id)})
-            except:
-                pass
+        try:
+            profile = await db.profiles.find_one({"_id": ObjectId(request.profile_id)})
+        except Exception as e:
+            logger.error(f"Invalid profile_id format: {request.profile_id}, error: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid profile ID format: {request.profile_id}"
+            )
         
         if not profile:
             raise HTTPException(

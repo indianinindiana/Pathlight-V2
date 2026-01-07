@@ -2,7 +2,11 @@
 
 ## Overview
 
-This document outlines the complete design system for Clara, PathLight's AI money advisor, including colors, typography, components, spacing, and interaction patterns.
+This document outlines the complete design system for Clara, PathLight's AI money advisor, including colors, typography, components, spacing, interaction patterns, and her role throughout the user journey.
+
+**Related Documentation:**
+- [`PATHLIGHT_HOME_ONBOARDING_DESIGN_GUIDE_V5.md`](PATHLIGHT_HOME_ONBOARDING_DESIGN_GUIDE_V5.md) - Complete user journey and flow
+- [`IMPLEMENTATION_GUIDE.md`](IMPLEMENTATION_GUIDE.md) - Step-by-step implementation
 
 ---
 
@@ -682,6 +686,284 @@ When creating new Clara components, ensure:
 **Last Updated**: 2025-11-26  
 **Version**: 1.0  
 **Maintained By**: PathLight Design Team
+
+---
+
+## 🗺️ Clara's Journey Map
+
+### Clara's Role Throughout User Journey
+
+Clara appears at specific moments throughout the user's journey, each with a distinct purpose and interaction style.
+
+#### **Phase 1: Introduction (Home Page)**
+
+**Location:** Meet Clara Card
+**Purpose:** First introduction, build trust
+**Style:** Static card with avatar
+**Interaction:** Read-only, no user input
+
+**Example:**
+```tsx
+<Card className="border-l-4 border-[#009A8C]">
+  <CardContent className="p-6">
+    <div className="flex items-start gap-3">
+      <img src="/clara-avatar.png" alt="Clara" className="w-12 h-12 rounded-full" />
+      <div>
+        <h3 className="font-semibold text-[#002B45] mb-2">
+          Meet Clara, Your AI Money Advisor
+        </h3>
+        <p className="text-sm text-[#3A4F61]">
+          Clara helps you organize your debts, spot opportunities, and understand
+          your options — without judgment or pressure.
+        </p>
+      </div>
+    </div>
+  </CardContent>
+</Card>
+```
+
+#### **Phase 2: Conversational Onboarding (9 Questions)**
+
+**Location:** Inline on Home Page (after CTA click)
+**Purpose:** Gather context, build relationship, understand goals
+**Style:** Conversational UI with choice chips
+**Interaction:** Highly interactive, empathetic responses
+
+**Clara's Behavior:**
+- Asks questions one at a time
+- Reacts emotionally to each response (1-2 sentences)
+- Uses choice chips for bounded options
+- Never references progress ("Question 3 of 9")
+- Uses emotional signaling ("This is really helpful")
+
+**Example Question:**
+```tsx
+<div className="space-y-4">
+  <div className="flex items-start gap-3">
+    <img src="/clara-avatar.png" alt="Clara" className="w-10 h-10 rounded-full" />
+    <div className="bg-gradient-to-br from-[#E7F7F4] to-white rounded-2xl p-4">
+      <p className="text-[#002B45]">What's your biggest money goal right now?</p>
+    </div>
+  </div>
+  
+  <div className="flex flex-wrap gap-2 ml-13">
+    <button className="choice-chip">Pay off debt faster</button>
+    <button className="choice-chip">Reduce my interest</button>
+    <button className="choice-chip">Lower my monthly payment</button>
+    <button className="choice-chip">Avoid falling behind</button>
+  </div>
+</div>
+```
+
+**Example Reaction:**
+```tsx
+<div className="flex items-start gap-3">
+  <img src="/clara-avatar.png" alt="Clara" className="w-10 h-10 rounded-full" />
+  <div className="bg-gradient-to-br from-[#E7F7F4] to-white rounded-2xl p-4">
+    <p className="text-[#002B45]">
+      That makes sense — taking steps to speed things up can create real momentum.
+    </p>
+  </div>
+</div>
+```
+
+#### **Phase 3: Transition to Task Mode (After Q9)**
+
+**Location:** Inline on Home Page
+**Purpose:** Close conversational mode, set expectations
+**Style:** Single message bubble
+**Interaction:** Read-only, auto-navigates after 2s
+
+**Required Message:**
+```tsx
+<Card className="border-none shadow-sm bg-gradient-to-br from-[#E7F7F4] to-white">
+  <CardContent className="p-6">
+    <div className="flex items-start gap-3">
+      <img src="/clara-avatar.png" alt="Clara" className="w-10 h-10 rounded-full" />
+      <p className="text-[#002B45] text-base leading-relaxed">
+        Thanks — that helps me understand what matters most to you.
+        Next, you'll enter your debts all at once so I can create your snapshot.
+      </p>
+    </div>
+  </CardContent>
+</Card>
+```
+
+**Critical:** This message must appear after Question 9 to:
+- Explicitly close conversational mode
+- Set expectations for structured data entry
+- Maintain trust through transparency
+
+#### **Phase 4: Debt Entry (Structured Form)**
+
+**Location:** DebtEntry.tsx page
+**Purpose:** Passive helper, validation support
+**Style:** Avatar + tooltip (passive)
+**Interaction:** Minimal, only for errors or zero-debt validation
+
+**Clara's Behavior:**
+- **Does NOT** appear for each field
+- **Does NOT** provide conversational prompts
+- **DOES** appear for validation errors (empathetic)
+- **DOES** appear for zero-debt validation
+
+**Zero-Debt Validation Example:**
+```tsx
+<Card className="border-l-4 border-[#009A8C] bg-[#E7F7F4]">
+  <CardContent className="p-4">
+    <div className="flex items-start gap-3">
+      <img src="/clara-avatar.png" alt="Clara" className="w-8 h-8 rounded-full" />
+      <p className="text-sm text-[#002B45]">
+        Add at least one debt so I can create your snapshot.
+      </p>
+    </div>
+  </CardContent>
+</Card>
+```
+
+**Validation Error Example:**
+```tsx
+<div className="flex items-start gap-2 p-3 bg-[#E7F7F4] rounded-lg">
+  <img src="/clara-avatar.png" alt="Clara" className="w-6 h-6 rounded-full" />
+  <p className="text-xs text-[#002B45]">
+    I need a number to work with — what's your best estimate?
+  </p>
+</div>
+```
+
+#### **Phase 5: Snapshot Celebration (After Debt Submission)**
+
+**Location:** DebtEntry.tsx page (inline)
+**Purpose:** Celebrate completion, transition to results
+**Style:** Single message bubble
+**Interaction:** Read-only, auto-navigates after 1.5s (non-blocking)
+
+**Required Message:**
+```tsx
+<Card className="border-none shadow-sm bg-gradient-to-br from-[#E7F7F4] to-white animate-in fade-in">
+  <CardContent className="p-6">
+    <div className="flex items-start gap-3">
+      <img src="/clara-avatar.png" alt="Clara" className="w-10 h-10 rounded-full" />
+      <p className="text-[#002B45] text-base leading-relaxed">
+        Your snapshot is ready — let me show you what I found.
+      </p>
+    </div>
+  </CardContent>
+</Card>
+```
+
+**Implementation Notes:**
+- Message appears immediately after successful debt submission
+- ≤1.5s pause before navigation (non-blocking)
+- User can click through early if desired
+- No loading spinner required
+
+#### **Phase 6: Dashboard (Snapshot View)**
+
+**Location:** Dashboard page
+**Purpose:** Contextual help, insights, recommendations
+**Style:** Avatar + tooltip (passive), insight cards
+**Interaction:** On-demand help, proactive insights
+
+**Clara's Behavior:**
+- Appears in insight cards with recommendations
+- Available via help tooltip
+- Provides explanations for complex concepts
+- Celebrates milestones
+
+**Insight Card Example:**
+```tsx
+<Card className="border-l-4 border-[#009A8C]">
+  <CardHeader>
+    <div className="flex items-center gap-2">
+      <Lightbulb className="w-5 h-5 text-[#009A8C]" />
+      <CardTitle>Clara's Insight</CardTitle>
+    </div>
+  </CardHeader>
+  <CardContent>
+    <p className="text-[#3A4F61]">
+      Focusing on your credit card first could save you $2,400 in interest
+      over the next year. It has the highest rate at 24.99%.
+    </p>
+  </CardContent>
+</Card>
+```
+
+### Clara Appearance Summary Table
+
+| Phase | Location | Purpose | Style | Frequency |
+|-------|----------|---------|-------|-----------|
+| Introduction | Home: Meet Clara Card | Build trust | Static card | Once |
+| 9 Questions | Home: Inline | Gather context | Conversational | 9 questions + reactions |
+| Transition | Home: After Q9 | Close conversation | Single message | Once |
+| Debt Entry | DebtEntry page | Validation help | Passive helper | As needed |
+| Celebration | DebtEntry page | Celebrate completion | Single message | Once |
+| Dashboard | Dashboard page | Insights & help | Passive + cards | Ongoing |
+
+---
+
+## 📝 Clara Messaging Patterns
+
+### Closing Message (After Q9)
+
+**Required Copy:**
+```
+"Thanks — that helps me understand what matters most to you.
+Next, you'll enter your debts all at once so I can create your snapshot."
+```
+
+**Purpose:**
+- Explicitly closes conversational mode
+- Sets expectations for structured data entry
+- Maintains trust through transparency
+
+**Timing:** Appears after Question 9, waits 2 seconds, then navigates to DebtEntry
+
+### Snapshot Ready Message (After Debt Submission)
+
+**Required Copy:**
+```
+"Your snapshot is ready — let me show you what I found."
+```
+
+**Purpose:**
+- Celebrates completion
+- Creates anticipation for results
+- Provides emotional payoff
+
+**Timing:** Appears after ≥1 debt submitted, waits ≤1.5 seconds, then navigates to Dashboard
+
+### Zero-Debt Validation Message
+
+**Required Copy:**
+```
+"Add at least one debt so I can create your snapshot."
+```
+
+**Purpose:**
+- Prevents navigation with no data
+- Maintains Clara's supportive tone
+- Explains why action is needed
+
+**Timing:** Appears when user tries to continue with 0 debts
+
+### Validation Error Messages
+
+**Pattern:** Empathetic clarification, not correction
+
+**Examples:**
+```
+"I need a number to work with — what's your best estimate?"
+"Just need a number here — like 3000 or 5000"
+"This helps me create a more accurate plan for you."
+```
+
+**Avoid:**
+```
+❌ "Error: Invalid input"
+❌ "This field is required"
+❌ "You must enter a valid number"
+```
 
 ---
 

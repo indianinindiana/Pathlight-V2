@@ -34,10 +34,10 @@ export const onboardingQuestions: OnboardingQuestion[] = [
   // 1. Money Goal
   {
     id: "moneyGoal",
-    label: "What's your biggest money goal right now?",
+    label: "Let's start with what matters most to you right now. What's your biggest money goal?",
     type: "multiple-choice",
     options: [
-      { value: "pay-faster", label: "Pay off Debt Faster" },
+      { value: "pay-faster", label: "Pay off debt faster" },
       { value: "reduce-interest", label: "Reduce my interest" },
       { value: "lower-payment", label: "Reduce my monthly payment" },
       { value: "avoid-default", label: "Avoid falling behind" },
@@ -48,7 +48,7 @@ export const onboardingQuestions: OnboardingQuestion[] = [
   // 2. Stress Level
   {
     id: "stressLevel",
-    label: "How stressful does your money situation feel right now?",
+    label: "How are we feeling about your money situation right now?",
     type: "slider",
     sliderConfig: {
       min: 1,
@@ -67,8 +67,8 @@ export const onboardingQuestions: OnboardingQuestion[] = [
   // 3. Life Events (Optional)
   {
     id: "lifeEvents",
-    label: "Any major life events coming up in the next 6–12 months? (Optional)",
-    helper: "Life events can affect your cash flow. Sharing helps us design a plan that adapts.",
+    label: "Are there any big life changes coming up in the next 6-12 months that we should plan for?",
+    helper: "This is optional, but it helps us create a plan that adapts to your life.",
     type: "optional-multiple-choice",
     options: [
       { value: "income-increase", label: "I expect my income to increase" },
@@ -83,8 +83,8 @@ export const onboardingQuestions: OnboardingQuestion[] = [
   // 4. Age Range
   {
     id: "ageRange",
-    label: "What's your age range?",
-    helper: "Different life stages come with different financial patterns — your answer guides smarter recommendations.",
+    label: "Let's talk about where you are in life. What's your age range?",
+    helper: "Different life stages come with different financial patterns.",
     type: "multiple-choice",
     options: [
       { value: "18-24", label: "18-24" },
@@ -99,8 +99,8 @@ export const onboardingQuestions: OnboardingQuestion[] = [
   // 5. Employment
   {
     id: "employmentStatus",
-    label: "What's your employment situation?",
-    helper: "This helps us understand income stability and tailor your monthly plan.",
+    label: "And what's your work situation like right now?",
+    helper: "This helps us understand your income stability.",
     type: "multiple-choice",
     options: [
       { value: "full-time", label: "Full-time" },
@@ -116,8 +116,8 @@ export const onboardingQuestions: OnboardingQuestion[] = [
   // 6. Monthly Income
   {
     id: "monthlyIncome",
-    label: "Monthly Take-Home Income",
-    helper: "How much money comes in each month for your household (after taxes and deductions)",
+    label: "Let's look at your cash flow. What's your monthly take-home income?",
+    helper: "How much money comes in each month after taxes and deductions",
     type: "number",
     placeholder: "3500",
     validation: { required: true, isNumeric: true },
@@ -126,8 +126,8 @@ export const onboardingQuestions: OnboardingQuestion[] = [
   // 7. Monthly Expenses
   {
     id: "monthlyExpenses",
-    label: "Monthly Expenses",
-    helper: "Typical spending each month (rent, utilities, groceries, subscriptions, etc. - excluding debt payments)",
+    label: "And how much do you typically spend each month?",
+    helper: "Include rent, utilities, groceries, subscriptions, etc. - but not debt payments",
     type: "number",
     placeholder: "2500",
     validation: { required: true, isNumeric: true },
@@ -136,8 +136,8 @@ export const onboardingQuestions: OnboardingQuestion[] = [
   // 8. Liquid Savings
   {
     id: "liquidSavings",
-    label: "Liquid Savings",
-    helper: "How much do you have saved that could help with debt or emergencies",
+    label: "How much do you have saved up that you could use for emergencies or debt?",
+    helper: "This helps us understand your financial cushion.",
     type: "number",
     placeholder: "1000",
     validation: { required: true, isNumeric: true },
@@ -146,8 +146,8 @@ export const onboardingQuestions: OnboardingQuestion[] = [
   // 9. Credit Score
   {
     id: "creditScore",
-    label: "Credit Score Range",
-    helper: "Sharing this helps us suggest the best repaying strategies for your situation",
+    label: "Last thing—what's your credit score range?",
+    helper: "This helps us suggest the best strategies for your situation.",
     type: "multiple-choice",
     options: [
       { value: "300-579", label: "300-579 (Poor)" },

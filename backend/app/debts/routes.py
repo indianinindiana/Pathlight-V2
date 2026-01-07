@@ -498,6 +498,7 @@ async def validate_debt(debt_data: Dict[str, Any]):
     - apr (required)
     - minimum_payment (required)
     - type (optional)
+    - term_months (optional, for installment loans)
     - name (optional)
     """
     validation_result = {
@@ -511,6 +512,8 @@ async def validate_debt(debt_data: Dict[str, Any]):
     balance = debt_data.get('balance')
     apr = debt_data.get('apr')
     minimum_payment = debt_data.get('minimum_payment')
+    debt_type = debt_data.get('type', 'credit-card')
+    term_months = debt_data.get('term_months')
     
     # Validate required fields are present
     if balance is None:
@@ -548,13 +551,43 @@ async def validate_debt(debt_data: Dict[str, Any]):
             # Calculate monthly interest (BR-1)
             monthly_interest = (balance * apr / 100) / 12
             
+            # Determine if this is an installment loan
+            installment_types = ['auto-loan', 'mortgage', 'student-loan', 'personal-loan', 'installment-loan']
+            is_installment = debt_type in installment_types
+            
             # Validate minimum payment covers interest (BR-1)
-            if minimum_payment < monthly_interest:
-                validation_result["valid"] = False
-                validation_result["errors"].append(
-                    f"Minimum payment (${minimum_payment:.2f}) must be at least equal to monthly interest "
-                    f"(${monthly_interest:.2f}) to ensure debt principal decreases over time."
-                )
+            # For installment loans with a term, use amortization validation
+            # For credit cards and loans without terms, ensure payment covers interest
+            if is_installment and term_months:
+                # For installment loans, calculate the proper amortized payment
+                try:
+                    term = int(term_months)
+                    monthly_rate = apr / 100 / 12
+                    
+                    if monthly_rate == 0:
+                        expected_payment = balance / term
+                    else:
+                        numerator = monthly_rate * ((1 + monthly_rate) ** term)
+                        denominator = ((1 + monthly_rate) ** term) - 1
+                        expected_payment = balance * (numerator / denominator)
+                    
+                    # Allow some tolerance (within 5% of expected payment)
+                    if minimum_payment < expected_payment * 0.95:
+                        validation_result["warnings"].append({
+                            "type": "low_installment_payment",
+                            "message": f"Payment (${minimum_payment:.2f}) is lower than the calculated amortized payment (${expected_payment:.2f}) for a {term}-month loan.",
+                            "severity": "medium"
+                        })
+                except (ValueError, TypeError):
+                    pass
+            else:
+                # For credit cards and loans without terms, payment must cover interest
+                if minimum_payment < monthly_interest:
+                    validation_result["valid"] = False
+                    validation_result["errors"].append(
+                        f"Minimum payment (${minimum_payment:.2f}) must be at least equal to monthly interest "
+                        f"(${monthly_interest:.2f}) to ensure debt principal decreases over time."
+                    )
             
             # Calculate suggested minimum payment
             principal_payment = max(balance * 0.01, 25.0)
@@ -587,7 +620,31 @@ async def validate_debt(debt_data: Dict[str, Any]):
                 })
             
             # Calculate payoff timeline at minimum payment
-            if minimum_payment > monthly_interest:
+            # For installment loans with a term, use the term directly
+            if is_installment and term_months:
+                try:
+                    months = int(term_months)
+                    years = months / 12
+                    
+                    # Calculate total interest for installment loan
+                    total_paid = minimum_payment * months
+                    total_interest = total_paid - balance
+                    
+                    validation_result["suggestions"]["months_to_payoff"] = months
+                    validation_result["suggestions"]["years_to_payoff"] = round(years, 1)
+                    validation_result["suggestions"]["total_interest_paid"] = round(total_interest, 2)
+                    
+                    # Only warn if the term itself is very long (not the payment amount)
+                    if years > 15:
+                        validation_result["warnings"].append({
+                            "type": "long_loan_term",
+                            "message": f"This loan has a {years:.1f}-year term. Longer terms mean more interest paid over time.",
+                            "severity": "low"
+                        })
+                except (ValueError, TypeError):
+                    pass
+            elif minimum_payment > monthly_interest:
+                # For credit cards and loans without terms, calculate iteratively
                 remaining_balance = balance
                 months = 0
                 max_months = 600  # 50 years safety limit
@@ -625,11 +682,13 @@ async def validate_debt(debt_data: Dict[str, Any]):
 @router.post("/suggest-minimum-payment")
 async def suggest_minimum_payment(debt_data: Dict[str, Any]):
     """
-    Calculate suggested minimum payment based on balance and APR.
+    Calculate suggested minimum payment based on balance, APR, and debt type.
     
     Request body:
     - balance (required): Current debt balance
     - apr (required): Annual Percentage Rate
+    - type (optional): Debt type (credit-card, auto-loan, mortgage, etc.)
+    - term_months (optional): Loan term in months (for installment loans)
     
     Returns:
     - monthly_interest: Monthly interest charge
@@ -638,6 +697,8 @@ async def suggest_minimum_payment(debt_data: Dict[str, Any]):
     """
     balance = debt_data.get('balance')
     apr = debt_data.get('apr')
+    debt_type = debt_data.get('type', 'credit-card')
+    term_months = debt_data.get('term_months')
     
     if balance is None or apr is None:
         raise HTTPException(
@@ -661,25 +722,90 @@ async def suggest_minimum_payment(debt_data: Dict[str, Any]):
                 detail="APR must be between 0 and 100"
             )
         
-        # Calculate monthly interest (BR-1)
-        monthly_interest = (balance * apr / 100) / 12
+        # Calculate monthly interest rate
+        monthly_rate = apr / 100 / 12
+        monthly_interest = balance * monthly_rate
         
-        # Calculate suggested minimum payment
-        # Add 1% of balance or $25 (whichever is greater) to ensure principal reduction
-        principal_payment = max(balance * 0.01, 25.0)
-        suggested_minimum = monthly_interest + principal_payment
+        # Determine if this is an installment loan (fixed payment) or revolving credit
+        installment_types = ['auto-loan', 'mortgage', 'student-loan', 'personal-loan', 'installment-loan']
+        is_installment = debt_type in installment_types
         
-        return {
-            "balance": balance,
-            "apr": apr,
-            "monthly_interest": round(monthly_interest, 2),
-            "suggested_minimum_payment": round(suggested_minimum, 2),
-            "principal_portion": round(principal_payment, 2),
-            "reasoning": (
+        if is_installment and term_months:
+            # Use amortization formula for installment loans
+            # M = P * [r(1+r)^n] / [(1+r)^n - 1]
+            # where M = monthly payment, P = principal, r = monthly rate, n = number of months
+            try:
+                term = int(term_months)
+                if term <= 0:
+                    raise ValueError("Term must be positive")
+                
+                if monthly_rate == 0:
+                    # If APR is 0%, simple division
+                    suggested_minimum = balance / term
+                    reasoning = f"With 0% APR, payment is simply ${balance:.2f} ÷ {term} months = ${suggested_minimum:.2f}/month."
+                else:
+                    # Standard amortization formula
+                    numerator = monthly_rate * ((1 + monthly_rate) ** term)
+                    denominator = ((1 + monthly_rate) ** term) - 1
+                    suggested_minimum = balance * (numerator / denominator)
+                    
+                    reasoning = (
+                        f"For a {term}-month {debt_type.replace('-', ' ')} at {apr}% APR, "
+                        f"the amortized payment is ${suggested_minimum:.2f}/month. "
+                        f"This ensures the loan is paid off in {term} months."
+                    )
+                
+                return {
+                    "balance": balance,
+                    "apr": apr,
+                    "debt_type": debt_type,
+                    "term_months": term,
+                    "monthly_interest": round(monthly_interest, 2),
+                    "suggested_minimum_payment": round(suggested_minimum, 2),
+                    "principal_portion": round(max(0, suggested_minimum - monthly_interest), 2),
+                    "reasoning": reasoning
+                }
+            except (ValueError, TypeError):
+                # Fall through to default calculation if term is invalid
+                pass
+        
+        # Default calculation for credit cards and installment loans without term
+        if is_installment:
+            # For installment loans without term, estimate 5 years (60 months)
+            estimated_term = 60
+            if monthly_rate == 0:
+                suggested_minimum = balance / estimated_term
+                reasoning = (
+                    f"With 0% APR and no term specified, we estimate a 5-year payoff: "
+                    f"${balance:.2f} ÷ {estimated_term} months = ${suggested_minimum:.2f}/month."
+                )
+            else:
+                numerator = monthly_rate * ((1 + monthly_rate) ** estimated_term)
+                denominator = ((1 + monthly_rate) ** estimated_term) - 1
+                suggested_minimum = balance * (numerator / denominator)
+                reasoning = (
+                    f"For a {debt_type.replace('-', ' ')} at {apr}% APR with no term specified, "
+                    f"we estimate a 5-year payoff: ${suggested_minimum:.2f}/month. "
+                    f"Provide the loan term for a more accurate calculation."
+                )
+        else:
+            # Credit card calculation: interest + 1% of balance or $25 (whichever is greater)
+            principal_payment = max(balance * 0.01, 25.0)
+            suggested_minimum = monthly_interest + principal_payment
+            reasoning = (
                 f"Monthly interest is ${monthly_interest:.2f}. "
                 f"We suggest adding ${principal_payment:.2f} to reduce the principal, "
                 f"for a total minimum payment of ${suggested_minimum:.2f}."
             )
+        
+        return {
+            "balance": balance,
+            "apr": apr,
+            "debt_type": debt_type,
+            "monthly_interest": round(monthly_interest, 2),
+            "suggested_minimum_payment": round(suggested_minimum, 2),
+            "principal_portion": round(max(0, suggested_minimum - monthly_interest), 2),
+            "reasoning": reasoning
         }
     
     except (ValueError, TypeError) as e:

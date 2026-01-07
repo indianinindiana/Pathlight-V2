@@ -266,14 +266,34 @@ const Scenarios = () => {
     const scenarios: PayoffScenario[] = [];
 
     // Snowball strategy - pay smallest debts first for psychological wins
-    const snowballScenario = calculatePayoffScenario(debts, 'snowball', minPayment);
+    const snowballScenario = calculatePayoffScenario(debts, 'snowball', availableAmount);
     snowballScenario.name = 'Snowball Method';
     scenarios.push(snowballScenario);
+    console.log('Snowball:', {
+      months: snowballScenario.totalMonths,
+      interest: snowballScenario.totalInterest,
+      payment: snowballScenario.monthlyPayment
+    });
 
     // Avalanche strategy - pay highest interest first to save money
-    const avalancheScenario = calculatePayoffScenario(debts, 'avalanche', minPayment);
+    const avalancheScenario = calculatePayoffScenario(debts, 'avalanche', availableAmount);
     avalancheScenario.name = 'Avalanche Method';
     scenarios.push(avalancheScenario);
+    console.log('Avalanche:', {
+      months: avalancheScenario.totalMonths,
+      interest: avalancheScenario.totalInterest,
+      payment: avalancheScenario.monthlyPayment
+    });
+
+    // Hybrid/Custom strategy - balanced approach
+    const hybridScenario = calculatePayoffScenario(debts, 'custom', availableAmount);
+    hybridScenario.name = 'Hybrid Method';
+    scenarios.push(hybridScenario);
+    console.log('Hybrid:', {
+      months: hybridScenario.totalMonths,
+      interest: hybridScenario.totalInterest,
+      payment: hybridScenario.monthlyPayment
+    });
 
     setDefaultScenarios(scenarios);
     setSelectedScenarios([scenarios[0].id]);
@@ -283,8 +303,8 @@ const Scenarios = () => {
       setSelectedStrategyId(scenarios[0].id);
     }
 
-    // Set initial custom payment
-    setCustomPayment(minPayment);
+    // Set initial custom payment to available amount
+    setCustomPayment(availableAmount);
   };
 
   const handleCustomPaymentChange = (value: number) => {
@@ -465,7 +485,7 @@ const Scenarios = () => {
 
   const strategyOptions = [
     {
-      value: 'snowball',
+      value: 'snowball' as PayoffStrategy,
       label: 'Snowball',
       metrics: {
         months: snowballPreview?.totalMonths || 48,
@@ -474,7 +494,7 @@ const Scenarios = () => {
       }
     },
     {
-      value: 'avalanche',
+      value: 'avalanche' as PayoffStrategy,
       label: 'Avalanche',
       metrics: {
         months: avalanchePreview?.totalMonths || 44,
@@ -483,7 +503,7 @@ const Scenarios = () => {
       }
     },
     {
-      value: 'custom',
+      value: 'custom' as PayoffStrategy,
       label: 'Hybrid',
       metrics: {
         months: customPreview?.totalMonths || 46,

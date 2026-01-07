@@ -148,13 +148,17 @@ qa_templates:
       2. References their specific situation when relevant
       3. Suggests actionable next steps if applicable
       
-      Format as JSON:
+      CRITICAL: You MUST return a complete, valid JSON object. Do not truncate your response.
+      
+      Return ONLY valid JSON in this exact format (no additional text):
       {{
-        "answer": "Direct answer to the question",
-        "context": "How this applies to their situation",
-        "next_steps": ["action 1", "action 2"],
-        "related_topics": ["topic 1", "topic 2"]
+        "answer": "Direct answer to the question (max 800 chars)",
+        "context": "How this applies to their situation (max 500 chars)",
+        "next_steps": ["action 1", "action 2", "action 3"],
+        "related_topics": ["topic 1", "topic 2", "topic 3"]
       }}
+      
+      Ensure all JSON brackets are properly closed.
   
   strategy_question:
     template: |

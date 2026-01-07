@@ -1,18 +1,53 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDebt } from '@/context/DebtContext';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { ArrowRight } from 'lucide-react';
 import DebtEntryForm from '@/components/DebtEntryForm';
 import DebtList from '@/components/DebtList';
 import CSVImportDialog from '@/components/CSVImportDialog';
 import { Debt } from '@/types/debt';
-import { showSuccess } from '@/utils/toast';
+import { showSuccess, showError } from '@/utils/toast';
+import { getUserId, getProfileId, setProfileId as setSessionProfileId } from '@/services/sessionManager';
+import { createProfile } from '@/services/profileApi';
 
 const DebtEntry = () => {
   const navigate = useNavigate();
-  const { debts, addDebt, updateDebt, deleteDebt, setCalibrationComplete, loadDebts, isLoadingDebts } = useDebt();
+  const { debts, addDebt, updateDebt, deleteDebt, setCalibrationComplete, loadDebts, isLoadingDebts, profileId, setProfileId: setContextProfileId } = useDebt();
   const [editingDebt, setEditingDebt] = useState<Debt | null>(null);
+  const [showSnapshotMessage, setShowSnapshotMessage] = useState(false);
+  const [isCreatingProfile, setIsCreatingProfile] = useState(false);
+
+  // Ensure profile exists on mount
+  useEffect(() => {
+    const ensureProfile = async () => {
+      const currentProfileId = getProfileId();
+      
+      // If no profile exists, create one
+      if (!currentProfileId) {
+        setIsCreatingProfile(true);
+        try {
+          const userId = getUserId();
+          const newProfile = await createProfile({
+            user_id: userId,
+            primary_goal: 'pay-faster'
+          });
+          
+          setSessionProfileId(newProfile.id);
+          setContextProfileId(newProfile.id);
+          console.log('Profile created:', newProfile.id);
+        } catch (error) {
+          console.error('Failed to create profile:', error);
+          showError('Failed to initialize profile. Please try refreshing the page.');
+        } finally {
+          setIsCreatingProfile(false);
+        }
+      }
+    };
+    
+    ensureProfile();
+  }, [setContextProfileId]);
 
   const handleAddDebt = async (debt: Omit<Debt, 'id'>) => {
     await addDebt(debt);
@@ -34,11 +69,17 @@ const DebtEntry = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (debts.length === 0) {
-      showSuccess('Please add at least one debt to continue');
-      return;
+      return; // Button is disabled, but just in case
     }
+    
+    // Show Clara's snapshot ready message
+    setShowSnapshotMessage(true);
+    
+    // Wait 1.5 seconds, then navigate
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
     setCalibrationComplete(true);
     navigate('/dashboard');
   };
@@ -69,6 +110,24 @@ const DebtEntry = () => {
             Add each debt individually or upload a CSV file with all your debts
           </p>
         </div>
+
+        {/* Clara's Static Guidance Panel */}
+        <Card className="border-none shadow-sm bg-gradient-to-br from-[#E7F7F4] to-white mb-8">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-3">
+              <img
+                src="/clara-avatar.png"
+                alt="Clara"
+                className="w-10 h-10 md:w-12 md:h-12 rounded-full flex-shrink-0 object-cover"
+              />
+              <div className="flex-1">
+                <p className="text-[#4F6A7A] text-base leading-relaxed">
+                  Add at least one debt so we can create your snapshot.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Debt Entry Form */}
         <div className="mb-8">
@@ -101,19 +160,38 @@ const DebtEntry = () => {
           />
         </div>
 
-        {/* Continue Button */}
-        {debts.length > 0 && (
-          <div className="flex justify-center pt-6">
-            <Button
-              size="lg"
-              onClick={handleContinue}
-              className="bg-[#009A8C] hover:bg-[#007F74] text-white font-semibold text-[18px] py-5 px-12 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 hover:scale-[1.02]"
-            >
-              Continue to Dashboard
-              <ArrowRight className="ml-2 w-5 h-5" />
-            </Button>
-          </div>
+        {/* Snapshot ready message */}
+        {showSnapshotMessage && (
+          <Card className="border-none shadow-sm bg-gradient-to-br from-[#E7F7F4] to-white mb-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-3">
+                <img
+                  src="/clara-avatar.png"
+                  alt="Clara"
+                  className="w-10 h-10 md:w-12 md:h-12 rounded-full flex-shrink-0 object-cover"
+                />
+                <div className="flex-1">
+                  <p className="text-[#002B45] text-base leading-relaxed">
+                    Your snapshot is ready — let me show you what I found.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         )}
+
+        {/* Continue Button */}
+        <div className="flex justify-center pt-6">
+          <Button
+            size="lg"
+            onClick={handleContinue}
+            disabled={debts.length === 0 || showSnapshotMessage}
+            className="bg-[#009A8C] hover:bg-[#007F74] text-white font-semibold text-[18px] py-5 px-12 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+          >
+            Continue to Dashboard
+            <ArrowRight className="ml-2 w-5 h-5" />
+          </Button>
+        </div>
       </div>
     </div>
   );
