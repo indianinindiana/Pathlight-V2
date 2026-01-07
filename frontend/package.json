@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "npm install && vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -62,6 +62,9 @@
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.3",
     "zod": "^3.23.8"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "^4.28.1"
   },
   "devDependencies": {
     "@dyad-sh/react-vite-component-tagger": "^0.8.0",
