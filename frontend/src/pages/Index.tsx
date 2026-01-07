@@ -339,6 +339,94 @@ const Index = () => {
         </div>
       </div>
 
+      {/* Features Showcase Section */}
+      <div className="bg-white py-16 md:py-24">
+        <div className="container mx-auto px-4">
+          <div className="max-w-6xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold text-center text-[#002B45] mb-4">
+              See PathLight in Action
+            </h2>
+            <p className="text-center text-[#3A4F61] mb-16 text-lg max-w-2xl mx-auto">
+              Get a clear view of your debt situation with powerful visualizations and personalized strategies
+            </p>
+
+            <div className="grid md:grid-cols-2 gap-8 md:gap-12">
+              {/* Feature 1: Dashboard Overview */}
+              <div className="space-y-4">
+                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-8 border-2 border-gray-200 aspect-video flex items-center justify-center">
+                  <div className="text-center">
+                    <DollarSign className="w-16 h-16 text-[#009A8C] mx-auto mb-4" />
+                    <p className="text-gray-500 text-sm">Dashboard Screenshot</p>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-[#002B45] mb-2">
+                    Complete Debt Overview
+                  </h3>
+                  <p className="text-[#3A4F61]">
+                    See all your debts in one place with clear metrics on total balance, monthly payments, and payoff timeline.
+                  </p>
+                </div>
+              </div>
+
+              {/* Feature 2: Scenario Analysis */}
+              <div className="space-y-4">
+                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-8 border-2 border-gray-200 aspect-video flex items-center justify-center">
+                  <div className="text-center">
+                    <RefreshCw className="w-16 h-16 text-[#009A8C] mx-auto mb-4" />
+                    <p className="text-gray-500 text-sm">Scenarios Screenshot</p>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-[#002B45] mb-2">
+                    Compare Payoff Strategies
+                  </h3>
+                  <p className="text-[#3A4F61]">
+                    Visualize different approaches—Avalanche, Snowball, or Hybrid—and see which saves you the most money and time.
+                  </p>
+                </div>
+              </div>
+
+              {/* Feature 3: Financial Assessment */}
+              <div className="space-y-4">
+                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-8 border-2 border-gray-200 aspect-video flex items-center justify-center">
+                  <div className="text-center">
+                    <Heart className="w-16 h-16 text-[#009A8C] mx-auto mb-4" />
+                    <p className="text-gray-500 text-sm">Assessment Screenshot</p>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-[#002B45] mb-2">
+                    Personalized Insights
+                  </h3>
+                  <p className="text-[#3A4F61]">
+                    Get AI-powered recommendations tailored to your unique financial situation and goals.
+                  </p>
+                </div>
+              </div>
+
+              {/* Feature 4: Payoff Timeline */}
+              <div className="space-y-4">
+                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-8 border-2 border-gray-200 aspect-video flex items-center justify-center">
+                  <div className="text-center">
+                    <ArrowRight className="w-16 h-16 text-[#009A8C] mx-auto mb-4" />
+                    <p className="text-gray-500 text-sm">Timeline Screenshot</p>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-[#002B45] mb-2">
+                    Visualize Your Payoff Timeline
+                  </h3>
+                  <p className="text-[#3A4F61]">
+                    See exactly when you'll be debt-free with interactive charts comparing different payoff strategies.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Final CTA Section */}
       <div className="bg-[#002B45] py-16 md:py-24">
         <div className="container mx-auto px-4">
