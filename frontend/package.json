@@ -64,7 +64,8 @@
     "zod": "^3.23.8"
   },
   "optionalDependencies": {
-    "@rollup/rollup-linux-x64-gnu": "^4.28.1"
+    "@rollup/rollup-linux-x64-gnu": "^4.28.1",
+    "@swc/core-linux-x64-gnu": "^1.10.1"
   },
   "devDependencies": {
     "@dyad-sh/react-vite-component-tagger": "^0.8.0",
