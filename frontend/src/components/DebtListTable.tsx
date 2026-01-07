@@ -231,7 +231,9 @@ const DebtListTable = ({ debts, onEdit, onDelete, onAddNew, onUpdatePriority }: 
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div className="flex items-center gap-2 cursor-help">
-                            <Percent className="w-4 h-4 text-[#4F6A7A]" />
+                            <div className="w-4 h-4 text-[#4F6A7A] flex items-center justify-center text-xs font-bold">
+                              %
+                            </div>
                             <div>
                               <p className="text-xs text-[#4F6A7A]">APR</p>
                               <p className="font-semibold text-[#002B45]">{debt.apr}%</p>

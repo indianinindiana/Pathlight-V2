@@ -2,12 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDebt } from '@/context/DebtContext';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, DollarSign, Calendar, TrendingDown, PiggyBank, TrendingUp } from 'lucide-react';
+import { ArrowRight, DollarSign, Calendar, TrendingDown, PiggyBank, TrendingUp, Shield } from 'lucide-react';
 import MetricsCard from '@/components/MetricsCard';
 import DebtCompositionChart from '@/components/DebtCompositionChart';
 import DebtListTable from '@/components/DebtListTable';
 import DebtEntryForm from '@/components/DebtEntryForm';
-import { ExportDialog } from '@/components/ExportDialog';
 import { FinancialAssessment } from '@/components/FinancialAssessment';
 import { Debt } from '@/types/debt';
 import { calculateTotalDebt, calculateTotalMinimumPayment, calculateDebtToIncome } from '@/utils/debtCalculations';
@@ -23,13 +22,26 @@ const Dashboard = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingDebt, setEditingDebt] = useState<Debt | null>(null);
 
+  // Calculate financial metrics
+  const totalDebt = calculateTotalDebt(debts);
+  const totalMinPayment = calculateTotalMinimumPayment(debts);
+  const debtToIncome = financialContext ? calculateDebtToIncome(totalMinPayment, financialContext.monthlyIncome) : 0;
+  
+  const netCashFlow = financialContext
+    ? financialContext.monthlyIncome - financialContext.monthlyExpenses - totalMinPayment
+    : 0;
+  
+  const emergencySavingsRatio = financialContext && financialContext.monthlyExpenses > 0
+    ? financialContext.liquidSavings / financialContext.monthlyExpenses
+    : 0;
+
   // Use financial assessment hook
   const { data: assessmentData, loading: assessmentLoading, error: assessmentError } = useFinancialAssessment({
     profileId: profileId || '',
     debts: debts.map(debt => ({
       balance: debt.balance,
       apr: debt.apr,
-      is_delinquent: false, // You may want to add this field to your Debt type
+      is_delinquent: debt.isDelinquent || false,
     })),
     userContext: {
       goal: Goal.BECOME_DEBT_FREE, // Default, could be from user profile
@@ -38,7 +50,13 @@ const Dashboard = () => {
       life_events: LifeEvent.NONE, // Default, could be from user profile
       age_range: AgeRange.AGE_35_44, // Default, could be from user profile
     },
-    enabled: !!profileId && debts.length > 0,
+    financialMetrics: {
+      monthly_income: financialContext?.monthlyIncome || 0,
+      monthly_expenses: financialContext?.monthlyExpenses || 0,
+      liquid_savings: financialContext?.liquidSavings || 0,
+      total_minimum_payments: totalMinPayment,
+    },
+    enabled: !!profileId && debts.length > 0 && !!financialContext,
   });
 
   // Track page view on mount
@@ -52,18 +70,6 @@ const Dashboard = () => {
     navigate('/debt-entry');
     return null;
   }
-
-  const totalDebt = calculateTotalDebt(debts);
-  const totalMinPayment = calculateTotalMinimumPayment(debts);
-  const debtToIncome = financialContext ? calculateDebtToIncome(totalDebt, financialContext.monthlyIncome) : 0;
-  
-  const netCashFlow = financialContext 
-    ? financialContext.monthlyIncome - financialContext.monthlyExpenses - totalMinPayment
-    : 0;
-  
-  const emergencySavingsRatio = financialContext && financialContext.monthlyExpenses > 0
-    ? financialContext.liquidSavings / financialContext.monthlyExpenses
-    : 0;
 
   const handleAddDebt = async (debt: Omit<Debt, 'id'>) => {
     await addDebt(debt);
@@ -131,9 +137,6 @@ const Dashboard = () => {
                 PathLight
               </h1>
             </div>
-            <div className="flex items-center gap-3">
-              {profileId && <ExportDialog profileId={profileId} />}
-            </div>
           </div>
         </div>
       </header>
@@ -184,7 +187,7 @@ const Dashboard = () => {
           
           <MetricsCard
             title="Net Cash Flow"
-            value={`${netCashFlow >= 0 ? '+' : ''}$${Math.abs(netCashFlow).toLocaleString()}`}
+            value={`${netCashFlow >= 0 ? '+' : '-'}$${Math.abs(netCashFlow).toLocaleString()}`}
             subtitle={netCashFlow >= 0 ? 'Additional payments possible' : 'Cannot make additional payments'}
             icon={netCashFlow >= 0 ? TrendingUp : TrendingDown}
             iconColor={netCashFlow >= 0 ? '#10B981' : '#EF4444'}
@@ -206,11 +209,27 @@ const Dashboard = () => {
             iconColor={emergencySavingsRatio >= 3 ? '#10B981' : emergencySavingsRatio >= 1 ? '#EAB308' : '#EF4444'}
           />
           
-        </div>
-
-        {/* Visualizations */}
-        <div className="mb-8">
-          <DebtCompositionChart debts={debts} />
+          {assessmentData && (
+            <MetricsCard
+              title="Debt Composition Risk"
+              value={`${Math.round(assessmentData.deterministic_output.risk_score)}/100`}
+              subtitle={
+                assessmentData.deterministic_output.risk_score <= 14 ? 'Debts are well-balanced and low risk.' :
+                assessmentData.deterministic_output.risk_score <= 29 ? 'Debt mix is generally healthy. A few areas could be improved.' :
+                assessmentData.deterministic_output.risk_score <= 49 ? 'Debt composition shows moderate risk.' :
+                assessmentData.deterministic_output.risk_score <= 69 ? 'Debt mix is putting significant pressure on your finances.' :
+                'Debt composition is highly risky and difficult to manage without changes.'
+              }
+              icon={Shield}
+              iconColor={
+                assessmentData.deterministic_output.risk_score <= 14 ? '#10B981' :
+                assessmentData.deterministic_output.risk_score <= 29 ? '#3B82F6' :
+                assessmentData.deterministic_output.risk_score <= 49 ? '#EAB308' :
+                assessmentData.deterministic_output.risk_score <= 69 ? '#F97316' : '#EF4444'
+              }
+            />
+          )}
+          
         </div>
 
         {/* Consolidated Financial Assessment with Clara Q&A */}
@@ -232,6 +251,11 @@ const Dashboard = () => {
             />
           </div>
         )}
+
+        {/* Debt Composition Chart */}
+        <div className="mb-8">
+          <DebtCompositionChart debts={debts} />
+        </div>
 
         {/* Debt List Table */}
         <div className="mb-8">

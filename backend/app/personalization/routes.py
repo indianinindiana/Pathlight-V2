@@ -16,6 +16,7 @@ from ..shared.financial_assessment import (
     DebtInput,
     UserContext,
     FinancialAssessmentResult,
+    FinancialMetrics,
 )
 from ..shared.ai_service import get_ai_service
 
@@ -29,6 +30,7 @@ class FinancialAssessmentRequest(BaseModel):
     profile_id: str = Field(..., description="User profile ID")
     debts: List[DebtInput] = Field(..., description="List of user's debts")
     user_context: UserContext = Field(..., description="User context for personalization")
+    financial_metrics: FinancialMetrics = Field(..., description="Financial metrics for comprehensive assessment")
 
 
 # ============================================================================
@@ -130,10 +132,11 @@ async def get_financial_assessment(request: FinancialAssessmentRequest):
             logger.warning(f"AI service not available, will use fallback UX copy: {e}")
             ai_service = None
         
-        # Run assessment
+        # Run assessment with financial metrics
         result = await assess_financial_health(
             debts=request.debts,
             user_context=request.user_context,
+            financial_metrics=request.financial_metrics,
             ai_service=ai_service
         )
         

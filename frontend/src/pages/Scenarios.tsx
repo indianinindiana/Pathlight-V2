@@ -17,7 +17,7 @@ import StrategyToggle from '@/components/ui/strategy-toggle';
 import ExplainabilitySection from '@/components/ui/explainability-section';
 import { ExportDialog } from '@/components/ExportDialog';
 import { AIStrategyComparison } from '@/components/AIStrategyComparison';
-import { calculatePayoffScenario, calculateTotalMinimumPayment, simulateConsolidation, simulateSettlement } from '@/utils/debtCalculations';
+import { calculatePayoffScenario, calculateTotalMinimumPayment, calculateTotalDebt, simulateConsolidation, simulateSettlement } from '@/utils/debtCalculations';
 import { PayoffScenario, PayoffStrategy } from '@/types/debt';
 import { showSuccess, showError } from '@/utils/toast';
 import { useFinancialAssessment } from '@/hooks/useFinancialAssessment';
@@ -123,6 +123,9 @@ const Scenarios = () => {
     }
   };
 
+  // Calculate financial metrics
+  const totalMinPayment = calculateTotalMinimumPayment(debts);
+
   // Use financial assessment for recommendations
   const { data: assessmentData, loading: assessmentLoading } = useFinancialAssessment({
     profileId: profileId || '',
@@ -138,7 +141,13 @@ const Scenarios = () => {
       life_events: mapLifeEvent(financialContext?.lifeEvents?.[0]),
       age_range: mapAgeRange(financialContext?.ageRange),
     },
-    enabled: !!profileId && debts.length > 0,
+    financialMetrics: {
+      monthly_income: financialContext?.monthlyIncome || 0,
+      monthly_expenses: financialContext?.monthlyExpenses || 0,
+      liquid_savings: financialContext?.liquidSavings || 0,
+      total_minimum_payments: totalMinPayment,
+    },
+    enabled: !!profileId && debts.length > 0 && !!financialContext,
   });
 
   // Derive recommendation from financial assessment

@@ -44,9 +44,9 @@ export const calculateTotalMinimumPayment = (debts: Debt[]): number => {
   return debts.reduce((sum, d) => sum + d.minimumPayment, 0);
 };
 
-export const calculateDebtToIncome = (totalDebt: number, monthlyIncome: number): number => {
+export const calculateDebtToIncome = (monthlyDebtPayments: number, monthlyIncome: number): number => {
   if (monthlyIncome === 0) return 0;
-  return (totalDebt / (monthlyIncome * 12)) * 100;
+  return (monthlyDebtPayments / monthlyIncome) * 100;
 };
 
 export const calculateUtilization = (debts: Debt[]): number => {

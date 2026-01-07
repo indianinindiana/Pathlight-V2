@@ -80,6 +80,13 @@ export interface DebtInput {
   is_delinquent: boolean;
 }
 
+export interface FinancialMetrics {
+  monthly_income: number;
+  monthly_expenses: number;
+  liquid_savings: number;
+  total_minimum_payments: number;
+}
+
 export interface UserContext {
   goal: Goal;
   stress_level: StressLevel;
@@ -105,6 +112,9 @@ export interface DeterministicRiskOutput {
   primary_driver: DriverType;
   drivers: RiskDrivers;
   driver_severity: DriverType[];
+  dti_ratio?: number;
+  net_cash_flow?: number;
+  emergency_savings_ratio?: number;
 }
 
 export interface FinancialInterpretation {
@@ -122,6 +132,7 @@ export interface RecommendationItem {
 
 export interface PersonalizedUXCopy {
   user_friendly_summary: string;
+  what_this_means: string[];
   personalized_recommendations: RecommendationItem[];
   closing_message: string;
 }
@@ -142,6 +153,7 @@ export interface FinancialAssessmentRequest {
   profile_id: string;
   debts: DebtInput[];
   user_context: UserContext;
+  financial_metrics: FinancialMetrics;
 }
 
 export interface FinancialAssessmentError {

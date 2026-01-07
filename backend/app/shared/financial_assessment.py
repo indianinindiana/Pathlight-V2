@@ -111,6 +111,30 @@ class DebtInput(BaseModel):
     is_delinquent: bool = Field(default=False, description="Whether debt is currently delinquent")
 
 
+class FinancialMetrics(BaseModel):
+    """Financial metrics for comprehensive assessment"""
+    monthly_income: float = Field(gt=0, description="Monthly income")
+    monthly_expenses: float = Field(ge=0, description="Monthly expenses")
+    liquid_savings: float = Field(ge=0, description="Liquid savings/emergency fund")
+    total_minimum_payments: float = Field(ge=0, description="Total monthly minimum debt payments")
+    
+    def get_dti_ratio(self) -> float:
+        """Calculate debt-to-income ratio"""
+        if self.monthly_income == 0:
+            return 0
+        return (self.total_minimum_payments / self.monthly_income) * 100
+    
+    def get_net_cash_flow(self) -> float:
+        """Calculate net cash flow"""
+        return self.monthly_income - self.monthly_expenses - self.total_minimum_payments
+    
+    def get_emergency_savings_ratio(self) -> float:
+        """Calculate emergency savings ratio (months of expenses covered)"""
+        if self.monthly_expenses == 0:
+            return 0
+        return self.liquid_savings / self.monthly_expenses
+
+
 class UserContext(BaseModel):
     """User context for personalized UX copy"""
     goal: Goal = Field(description="User's primary financial goal")
@@ -139,6 +163,11 @@ class DeterministicRiskOutput(BaseModel):
     driver_severity: List[DriverType] = Field(description="Drivers sorted by weighted score impact")
     primary_driver: DriverType = Field(description="Single most impactful driver")
     debt_count: int = Field(gt=0, description="Total number of debts")
+    
+    # Financial health metrics
+    dti_ratio: Optional[float] = Field(None, description="Debt-to-income ratio (%)")
+    net_cash_flow: Optional[float] = Field(None, description="Net monthly cash flow ($)")
+    emergency_savings_ratio: Optional[float] = Field(None, description="Emergency savings ratio (months)")
 
 
 class FinancialInterpretation(BaseModel):
@@ -183,6 +212,11 @@ class PersonalizedUXCopy(BaseModel):
         min_length=100,
         max_length=300,
         description="2-3 sentence summary (100-300 chars)"
+    )
+    what_this_means: List[str] = Field(
+        min_length=2,
+        max_length=4,
+        description="2-4 personalized interpretation points explaining what the assessment means for the user"
     )
     personalized_recommendations: List[RecommendationItem] = Field(
         min_length=3,
@@ -332,13 +366,17 @@ class DeterministicCalculator:
         return [driver_type for driver_type, _ in sorted_drivers]
     
     @classmethod
-    def calculate(cls, debts: List[DebtInput]) -> DeterministicRiskOutput:
+    def calculate(cls, debts: List[DebtInput], financial_metrics: Optional['FinancialMetrics'] = None) -> DeterministicRiskOutput:
         """
         Execute complete deterministic calculation.
         
+        Args:
+            debts: List of user's debts
+            financial_metrics: Optional financial metrics for comprehensive assessment
+        
         Returns:
-            DeterministicRiskOutput with score, band, drivers, severity ranking, 
-            primary driver, and debt count
+            DeterministicRiskOutput with score, band, drivers, severity ranking,
+            primary driver, debt count, and financial health metrics
         """
         # Calculate individual factors
         delinquency_factor = cls.calculate_delinquency_factor(debts)
@@ -371,13 +409,21 @@ class DeterministicCalculator:
         # Get debt count
         debt_count = len(debts)
         
+        # Calculate financial health metrics if provided
+        dti_ratio = financial_metrics.get_dti_ratio() if financial_metrics else None
+        net_cash_flow = financial_metrics.get_net_cash_flow() if financial_metrics else None
+        emergency_savings_ratio = financial_metrics.get_emergency_savings_ratio() if financial_metrics else None
+        
         return DeterministicRiskOutput(
             risk_score=risk_score,
             risk_band=risk_band,
             drivers=drivers,
             driver_severity=driver_severity,
             primary_driver=primary_driver,
-            debt_count=debt_count
+            debt_count=debt_count,
+            dti_ratio=dti_ratio,
+            net_cash_flow=net_cash_flow,
+            emergency_savings_ratio=emergency_savings_ratio
         )
 
 
@@ -629,11 +675,12 @@ USER CONTEXT:
 
 TASK:
 1. Provide a 2-3 sentence summary of what this debt composition score means.
-2. Provide specific, personalized recommendations (3-5 bullets) that include:
+2. Provide 2-4 personalized "What This Means" interpretation points that explain the practical implications of their debt situation in plain language, referencing their specific context (goal, stress level, life events).
+3. Provide specific, personalized recommendations (3-5 bullets) that include:
    - Actionable steps based on their primary risk driver
    - Debt payoff strategy recommendations (avalanche for high-rate debt, snowball for stress reduction)
    - Specific actions they can take (e.g., "Compare payoff scenarios", "Consider consolidation")
-3. Provide an encouraging, goal-aligned closing line.
+4. Provide an encouraging, goal-aligned closing line.
 
 RECOMMENDATION GUIDELINES:
 - If primary driver is HIGH_RATE: Recommend avalanche method (highest interest first) and exploring scenarios
@@ -657,9 +704,31 @@ BACKUP UX COPY (Reference Only):
 Return your response as JSON with these exact keys:
 {{
   "user_friendly_summary": "<2-3 sentences>",
-  "personalized_recommendations": ["<bullet 1>", "<bullet 2>", "<bullet 3>", ...],
+  "what_this_means": [
+    "<interpretation point 1>",
+    "<interpretation point 2>",
+    "<interpretation point 3 (optional)>",
+    "<interpretation point 4 (optional)>"
+  ],
+  "personalized_recommendations": [
+    {{
+      "text": "<recommendation text>",
+      "category": "<one of: cash_flow, stress_reduction, delinquency, interest_cost, complexity>",
+      "priority": <1-5, where 1 is highest>,
+      "action_id": "<optional action identifier or null>"
+    }},
+    ...
+  ],
   "closing_message": "<encouraging closing>"
-}}"""
+}}
+
+IMPORTANT:
+- what_this_means must be an array of 2-4 strings explaining practical implications
+- personalized_recommendations must be an array of objects with text, category, priority, and action_id fields
+- Category must be one of: cash_flow, stress_reduction, delinquency, interest_cost, complexity
+- Priority must be a number from 1-5 (1 = highest priority)
+- action_id can be null or a string like "review-strategy", "consolidate-debts", "address-delinquency", "high-interest-focus"
+"""
         
         return prompt
     
@@ -673,8 +742,8 @@ Return your response as JSON with these exact keys:
         """
         Generate fallback UX copy without LLM (for errors or testing).
         """
-        # Use backup copy for summary
-        summary = f"{cls.BACKUP_UX_COPY['risk_bands'][risk_output.risk_band]} {interpretation.summary}"
+        # Use interpretation summary directly (it already includes the risk band context)
+        summary = interpretation.summary
         
         # Generate basic recommendations as RecommendationItem objects
         recommendations = []
@@ -759,8 +828,12 @@ Return your response as JSON with these exact keys:
             cls.BACKUP_UX_COPY['life_events']['none']
         )
         
+        # Generate what_this_means points from interpretation
+        what_this_means = interpretation.interpretation_points[:4]  # Max 4
+        
         return PersonalizedUXCopy(
             user_friendly_summary=summary,
+            what_this_means=what_this_means,
             personalized_recommendations=recommendations[:5],  # Max 5
             closing_message=closing
         )
@@ -816,6 +889,7 @@ Return your response as JSON with these exact keys:
 async def assess_financial_health(
     debts: List[DebtInput],
     user_context: UserContext,
+    financial_metrics: Optional[FinancialMetrics] = None,
     ai_service: Optional[Any] = None
 ) -> FinancialAssessmentResult:
     """
@@ -829,13 +903,14 @@ async def assess_financial_health(
     Args:
         debts: List of user's debts
         user_context: User context for personalization
+        financial_metrics: Optional financial metrics for comprehensive assessment
         ai_service: Optional AI service for LLM calls
         
     Returns:
         FinancialAssessmentResult with all three layers of output
     """
     # Layer 1: Deterministic calculation
-    risk_output = DeterministicCalculator.calculate(debts)
+    risk_output = DeterministicCalculator.calculate(debts, financial_metrics)
     
     # Layer 2: Financial interpretation
     interpretation = FinancialInterpreter.interpret(risk_output, debts)

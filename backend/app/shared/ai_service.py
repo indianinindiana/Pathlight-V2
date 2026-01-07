@@ -475,6 +475,43 @@ Please provide a helpful, personalized answer based on this context."""
                 return get_resume_message()
             return get_clara_fallback(step_id, user_answers)
     
+    async def generate_structured_response(
+        self,
+        prompt: str,
+        response_model: Any,
+        system_prompt: Optional[str] = None,
+        temperature: float = 0.7,
+        max_tokens: int = 2000
+    ) -> Any:
+        """
+        Generate a structured response matching a Pydantic model.
+        
+        Args:
+            prompt: The prompt to send to the LLM
+            response_model: Pydantic model class for the response
+            system_prompt: Optional system prompt
+            temperature: Sampling temperature
+            max_tokens: Maximum tokens to generate
+            
+        Returns:
+            Instance of response_model with the generated data
+        """
+        try:
+            # Generate JSON response
+            response_data = await self.provider.generate_json(
+                prompt=prompt,
+                system_prompt=system_prompt or "You are a helpful financial advisor.",
+                temperature=temperature,
+                max_tokens=max_tokens
+            )
+            
+            # Create and return model instance
+            return response_model(**response_data)
+            
+        except Exception as e:
+            logger.error(f"Error generating structured response: {e}")
+            raise
+    
     def reload_config(self):
         """Reload AI prompt configuration"""
         self.config.reload()

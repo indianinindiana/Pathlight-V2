@@ -10,12 +10,14 @@ import {
   FinancialAssessmentError,
   DebtInput,
   UserContext,
+  FinancialMetrics,
 } from '../types/financialAssessment';
 
 interface UseFinancialAssessmentOptions {
   profileId: string;
   debts: DebtInput[];
   userContext: UserContext;
+  financialMetrics: FinancialMetrics;
   enabled?: boolean;
   debounceMs?: number;
 }
@@ -33,6 +35,7 @@ export function useFinancialAssessment({
   profileId,
   debts,
   userContext,
+  financialMetrics,
   enabled = true,
   debounceMs = 2000,
 }: UseFinancialAssessmentOptions): UseFinancialAssessmentReturn {
@@ -55,6 +58,7 @@ export function useFinancialAssessment({
         profile_id: profileId,
         debts,
         user_context: userContext,
+        financial_metrics: financialMetrics,
       };
 
       const response = await fetch(
@@ -85,7 +89,7 @@ export function useFinancialAssessment({
     } finally {
       setLoading(false);
     }
-  }, [profileId, debts, userContext, enabled]);
+  }, [profileId, debts, userContext, financialMetrics, enabled]);
 
   // Debounced effect to fetch assessment
   useEffect(() => {
@@ -94,7 +98,7 @@ export function useFinancialAssessment({
     }
 
     // Create a key from the current state to prevent unnecessary refetches
-    const fetchKey = `${profileId}-${debts.length}-${JSON.stringify(debts.map(d => d.balance + d.apr))}`;
+    const fetchKey = `${profileId}-${debts.length}-${JSON.stringify(debts.map(d => d.balance + d.apr))}-${financialMetrics.monthly_income}-${financialMetrics.total_minimum_payments}`;
     
     // Only fetch if the key has changed
     if (fetchKey === lastFetchKey) {
@@ -107,7 +111,7 @@ export function useFinancialAssessment({
     }, debounceMs);
 
     return () => clearTimeout(timeoutId);
-  }, [profileId, debts, userContext, enabled, debounceMs, lastFetchKey]);
+  }, [profileId, debts, userContext, financialMetrics, enabled, debounceMs, lastFetchKey, fetchAssessment]);
 
   return {
     data,

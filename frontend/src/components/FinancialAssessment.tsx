@@ -161,7 +161,14 @@ export function FinancialAssessment({ data, loading, error, profileId, context, 
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-[#002B45] text-2xl mb-2">Financial Health Assessment</CardTitle>
-            <CardDescription>Personalized analysis of your debt situation</CardDescription>
+            <div className="flex items-center gap-2">
+              <img
+                src="/clara-avatar.png"
+                alt="Clara"
+                className="w-5 h-5 rounded-full object-cover"
+              />
+              <CardDescription>Personalized analysis of your debt situation</CardDescription>
+            </div>
           </div>
           <div className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${getRiskBandColor(deterministic_output.risk_band)}`}>
             {getRiskIcon(deterministic_output.risk_band)}
@@ -170,27 +177,6 @@ export function FinancialAssessment({ data, loading, error, profileId, context, 
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Risk Score */}
-        <div className="bg-gray-50 rounded-lg p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-[#3A4F61]">Risk Score</span>
-            <span className="text-2xl font-bold text-[#002B45]">{deterministic_output.risk_score.toFixed(1)}</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className={`h-2 rounded-full transition-all ${
-                deterministic_output.risk_score < 30 ? 'bg-green-500' :
-                deterministic_output.risk_score < 50 ? 'bg-blue-500' :
-                deterministic_output.risk_score < 70 ? 'bg-yellow-500' :
-                deterministic_output.risk_score < 85 ? 'bg-orange-500' :
-                'bg-red-500'
-              }`}
-              style={{ width: `${deterministic_output.risk_score}%` }}
-            />
-          </div>
-          <p className="text-xs text-[#3A4F61] mt-2">{riskConfig.description}</p>
-        </div>
-
         {/* Summary */}
         <div>
           <h4 className="font-semibold text-[#002B45] mb-2">Summary</h4>
@@ -218,15 +204,15 @@ export function FinancialAssessment({ data, loading, error, profileId, context, 
           </div>
         )}
 
-        {/* Interpretation Points */}
-        {financial_interpretation.interpretation_points.length > 0 && (
+        {/* AI-Generated Interpretation Points */}
+        {personalized_ux.what_this_means && personalized_ux.what_this_means.length > 0 && (
           <div>
             <h4 className="font-semibold text-[#002B45] mb-2">What This Means</h4>
             <ul className="space-y-2">
-              {financial_interpretation.interpretation_points.map((point, index) => (
+              {personalized_ux.what_this_means.map((point, index) => (
                 <li key={index} className="flex items-start gap-2 text-[#3A4F61]">
-                  <span className="text-[#009A8C] mt-1">•</span>
-                  <span className="text-sm">{point}</span>
+                  <span className="text-[#009A8C] mt-0.5 flex-shrink-0">•</span>
+                  <span className="text-sm flex-1">{point}</span>
                 </li>
               ))}
             </ul>
@@ -263,8 +249,14 @@ export function FinancialAssessment({ data, loading, error, profileId, context, 
                         </Badge>
                         <div className="flex-1">
                           <p className="text-[#002B45] font-medium mb-1">{rec.text}</p>
-                          <div className="flex items-center gap-2">
-                            <p className="text-xs text-[#3A4F61] capitalize">{rec.category.replace('_', ' ')}</p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge variant="outline" className="text-xs border-[#009A8C]/30 text-[#009A8C] bg-[#009A8C]/5">
+                              {rec.category === 'cash_flow' && '💰 Cash Flow'}
+                              {rec.category === 'stress_reduction' && '😌 Stress Reduction'}
+                              {rec.category === 'delinquency' && '⚠️ Delinquency'}
+                              {rec.category === 'interest_cost' && '📉 Interest Cost'}
+                              {rec.category === 'complexity' && '🎯 Simplification'}
+                            </Badge>
                             {hasAction && (
                               <Badge variant="secondary" className="text-xs bg-[#009A8C] text-white">
                                 Click to explore →
@@ -294,7 +286,7 @@ export function FinancialAssessment({ data, loading, error, profileId, context, 
                   alt="Clara"
                   className="w-5 h-5 rounded-full object-cover"
                 />
-                <span className="font-medium">Have questions? Ask Clara</span>
+                <span className="font-medium">Have questions?</span>
               </div>
               {showQA ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </Button>
