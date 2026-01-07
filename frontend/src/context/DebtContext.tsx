@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Debt, FinancialContext, PayoffScenario, WhatIfScenario, ProductRecommendation, AIGuidance } from '@/types/debt';
 import * as debtApi from '@/services/debtApi';
 import { getProfileId, getSessionId, setProfileId as saveProfileId } from '@/services/sessionManager';
+import { getProfileByUserId } from '@/services/profileApi';
 import { showSuccess, showError } from '@/utils/toast';
 import { trackEvent, checkMilestones } from '@/services/analyticsApi';
 
@@ -133,48 +134,88 @@ export const DebtProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Load from localStorage on mount and load debts from backend
   // Also check for profileId in URL parameters
   useEffect(() => {
-    // Check for profile ID in URL first
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlProfileId = urlParams.get('profileId') || urlParams.get('profile_id');
-    
-    if (urlProfileId) {
-      // Load profile from URL parameter
-      console.log('Loading profile from URL:', urlProfileId);
-      setProfileIdState(urlProfileId);
+    const loadProfileAndDebts = async () => {
+      // Check for profile ID in URL first
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlProfileId = urlParams.get('profileId') || urlParams.get('profile_id');
       
-      // Save to sessionManager
-      saveProfileId(urlProfileId);
-      
-      // Save to localStorage
-      const data = {
-        profileId: urlProfileId,
-        onboardingComplete: true,
-        calibrationComplete: true
-      };
-      localStorage.setItem('debtPathfinderSession', JSON.stringify(data));
-      
-      // Clear URL parameter after loading (optional - keeps URL clean)
-      window.history.replaceState({}, '', window.location.pathname);
-      
-      // Load debts for this profile
-      setTimeout(() => loadDebts(), 100);
-    } else {
-      // Load from localStorage
-      const saved = localStorage.getItem('debtPathfinderSession');
-      if (saved) {
+      if (urlProfileId) {
+        // Load profile from URL parameter
+        console.log('Loading profile from URL:', urlProfileId);
+        setProfileIdState(urlProfileId);
+        
+        // Save to sessionManager
+        saveProfileId(urlProfileId);
+        
+        // Fetch profile data to get financial context
         try {
-          const data = JSON.parse(saved);
-          if (data.financialContext) setFinancialContextState(data.financialContext);
-          if (data.onboardingComplete) setOnboardingCompleteState(data.onboardingComplete);
-          if (data.profileId) setProfileIdState(data.profileId);
-        } catch (e) {
-          console.error('Failed to load session:', e);
+          const profileData = await getProfileByUserId(urlProfileId);
+          console.log('Profile data loaded:', profileData);
+          
+          // Map profile data to financial context
+          if (profileData) {
+            const context: FinancialContext = {
+              monthlyIncome: (profileData as any).monthly_income || 0,
+              monthlyExpenses: (profileData as any).monthly_expenses || 0,
+              liquidSavings: (profileData as any).liquid_savings || 0,
+              creditScoreRange: (profileData as any).credit_score_range as any || '670-739',
+              primaryGoal: profileData.primary_goal || 'pay-faster',
+              stressLevel: (profileData as any).stress_level || 3,
+              ageRange: (profileData as any).age_range as any || '25-34',
+              employmentStatus: (profileData as any).employment_status as any || 'full-time',
+              lifeEvents: (profileData as any).life_events || []
+            };
+            setFinancialContextState(context);
+            console.log('Financial context set:', context);
+          }
+          
+          // Save to localStorage
+          const data = {
+            profileId: urlProfileId,
+            onboardingComplete: true,
+            calibrationComplete: true,
+            financialContext: profileData ? {
+              monthlyIncome: (profileData as any).monthly_income,
+              monthlyExpenses: (profileData as any).monthly_expenses,
+              liquidSavings: (profileData as any).liquid_savings,
+              creditScoreRange: (profileData as any).credit_score_range,
+              primaryGoal: profileData.primary_goal,
+              stressLevel: (profileData as any).stress_level,
+              ageRange: (profileData as any).age_range,
+              employmentStatus: (profileData as any).employment_status,
+              lifeEvents: (profileData as any).life_events
+            } : undefined
+          };
+          localStorage.setItem('debtPathfinderSession', JSON.stringify(data));
+        } catch (error) {
+          console.error('Failed to load profile data:', error);
         }
-      }
+        
+        // Clear URL parameter after loading (optional - keeps URL clean)
+        window.history.replaceState({}, '', window.location.pathname);
+        
+        // Load debts for this profile
+        setTimeout(() => loadDebts(), 100);
+      } else {
+        // Load from localStorage
+        const saved = localStorage.getItem('debtPathfinderSession');
+        if (saved) {
+          try {
+            const data = JSON.parse(saved);
+            if (data.financialContext) setFinancialContextState(data.financialContext);
+            if (data.onboardingComplete) setOnboardingCompleteState(data.onboardingComplete);
+            if (data.profileId) setProfileIdState(data.profileId);
+          } catch (e) {
+            console.error('Failed to load session:', e);
+          }
+        }
 
-      // Load debts from backend if profile exists
-      loadDebts();
-    }
+        // Load debts from backend if profile exists
+        loadDebts();
+      }
+    };
+    
+    loadProfileAndDebts();
   }, []);
 
   // Save to localStorage on changes
