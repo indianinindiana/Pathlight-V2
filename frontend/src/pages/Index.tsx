@@ -261,6 +261,27 @@ const Index = () => {
           </div>
         )}
 
+        {/* Onboarding In Progress CTA */}
+        {!onboardingComplete && uiState === 'conversation_active' && currentStep > 0 && !isComplete && (
+          <div className="max-w-3xl mx-auto text-center mb-8">
+            <Button
+              size="lg"
+              onClick={() => {
+                // Scroll to conversation
+                const conversationElement = document.querySelector('[role="region"][aria-label="Clara guiding you"]');
+                conversationElement?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+              className="w-full md:w-auto md:min-w-[300px] mx-auto flex items-center justify-center bg-[#009A8C] hover:bg-[#007F74] text-white font-semibold text-[16px] md:text-[18px] py-4 md:py-5 px-6 md:px-8 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 hover:scale-[1.02]"
+            >
+              Continue Your Snapshot
+              <ArrowRight className="ml-2 w-4 h-4 md:w-5 md:h-5" />
+            </Button>
+            <p className="text-sm text-[#4F6A7A] mt-3">
+              Complete your initial conversation with Clara to get your Debt Snapshot
+            </p>
+          </div>
+        )}
+
         {/* Returning User Section */}
         {onboardingComplete && (
           <div className="max-w-2xl mx-auto">
