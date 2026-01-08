@@ -20,7 +20,7 @@ from datetime import date
 
 router = APIRouter(prefix="/api/v1/recommendations", tags=["recommendations"])
 
-@router.post("/strategy", response_model=StrategyRecommendation, status_code=status.HTTP_200_OK)
+@router.post("/strategy", response_model=StrategyRecommendation, response_model_by_alias=True, status_code=status.HTTP_200_OK)
 async def recommend_strategy(request: StrategyRecommendationRequest):
     """
     Recommend the best payoff strategy based on user profile and goals.
@@ -44,6 +44,10 @@ async def recommend_strategy(request: StrategyRecommendationRequest):
             detail="Profile not found"
         )
     
+    # Convert ObjectId to string for Pydantic compatibility
+    if '_id' in profile_data:
+        profile_data['_id'] = str(profile_data['_id'])
+    
     profile = Profile(**profile_data)
     
     # Fetch all debts
@@ -55,6 +59,14 @@ async def recommend_strategy(request: StrategyRecommendationRequest):
             status_code=status.HTTP_404_NOT_FOUND,
             detail="No debts found for this profile"
         )
+    
+    # Convert ObjectId to string and fix date format for each debt
+    for debt in debts_data:
+        if '_id' in debt:
+            debt['_id'] = str(debt['_id'])
+        # Convert datetime to date if needed
+        if 'next_payment_date' in debt and hasattr(debt['next_payment_date'], 'date'):
+            debt['next_payment_date'] = debt['next_payment_date'].date()
     
     debts = [SimpleDebt(**debt) for debt in debts_data]
     start_date = request.start_date or date.today()
@@ -107,15 +119,25 @@ async def recommend_strategy(request: StrategyRecommendationRequest):
         )
 
 @router.post("/confidence", status_code=status.HTTP_200_OK)
-async def calculate_recommendation_confidence(profile_id: str):
+async def calculate_recommendation_confidence(request: dict):
     """
     Calculate confidence score for recommendations based on profile completeness.
     
     Implements BR-3 (Confidence Scoring).
     
+    Request body:
+        {"profile_id": "user_id_string"}
+    
     Returns:
         Confidence score (0-100) and factors affecting confidence
     """
+    profile_id = request.get("profile_id")
+    if not profile_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="profile_id is required"
+        )
+    
     db = await get_database()
     
     # Fetch profile
@@ -126,11 +148,24 @@ async def calculate_recommendation_confidence(profile_id: str):
             detail="Profile not found"
         )
     
+    # Convert ObjectId to string for Pydantic compatibility
+    if '_id' in profile_data:
+        profile_data['_id'] = str(profile_data['_id'])
+    
     profile = Profile(**profile_data)
     
     # Fetch debts
     debts_cursor = db.debts.find({"profile_id": profile_id})
     debts_data = await debts_cursor.to_list(length=None)
+    
+    # Convert ObjectId to string and fix date format for each debt
+    for debt in debts_data:
+        if '_id' in debt:
+            debt['_id'] = str(debt['_id'])
+        # Convert datetime to date if needed
+        if 'next_payment_date' in debt and hasattr(debt['next_payment_date'], 'date'):
+            debt['next_payment_date'] = debt['next_payment_date'].date()
+    
     debts = [SimpleDebt(**debt) for debt in debts_data]
     
     # Calculate confidence factors

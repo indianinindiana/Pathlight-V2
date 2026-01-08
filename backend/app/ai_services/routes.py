@@ -66,16 +66,16 @@ async def generate_insights(request: InsightsRequest):
         # Get database
         db = await get_database()
         
-        # Fetch profile using MongoDB ObjectId
+        # Fetch profile - try both ObjectId and user_id (for test profiles)
         from bson import ObjectId
+        profile = None
+        
+        # First try as MongoDB ObjectId
         try:
             profile = await db.profiles.find_one({"_id": ObjectId(request.profile_id)})
-        except Exception as e:
-            logger.error(f"Invalid profile_id format: {request.profile_id}, error: {e}")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid profile ID format: {request.profile_id}"
-            )
+        except:
+            # If that fails, try as user_id (for test profiles like "test-profile-6")
+            profile = await db.profiles.find_one({"user_id": request.profile_id})
         
         if not profile:
             raise HTTPException(
@@ -83,7 +83,7 @@ async def generate_insights(request: InsightsRequest):
                 detail=f"Profile not found: {request.profile_id}"
             )
         
-        # Fetch debts using the profile_id (which is the MongoDB _id as string)
+        # Fetch debts using the profile_id
         debts_cursor = db.debts.find({"profile_id": request.profile_id})
         debts = await debts_cursor.to_list(length=100)
         
@@ -159,16 +159,16 @@ async def ask_question(request: QARequest):
         # Get database
         db = await get_database()
         
-        # Fetch profile using MongoDB ObjectId
+        # Fetch profile - try both ObjectId and user_id (for test profiles)
         from bson import ObjectId
+        profile = None
+        
+        # First try as MongoDB ObjectId
         try:
             profile = await db.profiles.find_one({"_id": ObjectId(request.profile_id)})
-        except Exception as e:
-            logger.error(f"Invalid profile_id format: {request.profile_id}, error: {e}")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid profile ID format: {request.profile_id}"
-            )
+        except:
+            # If that fails, try as user_id (for test profiles like "test-profile-6")
+            profile = await db.profiles.find_one({"user_id": request.profile_id})
         
         if not profile:
             raise HTTPException(
@@ -176,7 +176,7 @@ async def ask_question(request: QARequest):
                 detail=f"Profile not found: {request.profile_id}"
             )
         
-        # Fetch debts using the profile_id (which is the MongoDB _id as string)
+        # Fetch debts using the profile_id
         debts_cursor = db.debts.find({"profile_id": request.profile_id})
         debts = await debts_cursor.to_list(length=100)
         
@@ -238,16 +238,16 @@ async def compare_strategies(request: StrategyComparisonRequest):
         # Get database
         db = await get_database()
         
-        # Fetch profile using MongoDB ObjectId
+        # Fetch profile - try both ObjectId and user_id (for test profiles)
         from bson import ObjectId
+        profile = None
+        
+        # First try as MongoDB ObjectId
         try:
             profile = await db.profiles.find_one({"_id": ObjectId(request.profile_id)})
-        except Exception as e:
-            logger.error(f"Invalid profile_id format: {request.profile_id}, error: {e}")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid profile ID format: {request.profile_id}"
-            )
+        except:
+            # If that fails, try as user_id (for test profiles like "test-profile-6")
+            profile = await db.profiles.find_one({"user_id": request.profile_id})
         
         if not profile:
             raise HTTPException(

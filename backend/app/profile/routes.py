@@ -45,8 +45,15 @@ async def get_profile_by_user_id(user_id: str):
     """Get a user profile by user_id (session identifier)."""
     collection = get_profiles_collection()
     
-    # Find profile by user_id
-    profile = await collection.find_one({"user_id": user_id})
+    # Try to convert user_id to int for query flexibility
+    try:
+        user_id_int = int(user_id)
+        query = {"$or": [{"user_id": user_id}, {"user_id": user_id_int}]}
+    except ValueError:
+        query = {"user_id": user_id}
+        
+    # Find profile by user_id (string or int)
+    profile = await collection.find_one(query)
     
     if not profile:
         raise HTTPException(

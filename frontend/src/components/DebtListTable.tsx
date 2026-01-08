@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Edit2, Trash2, CreditCard, DollarSign, Percent, Calendar, AlertCircle, GripVertical, ArrowUpDown, Plus } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Edit2, Trash2, CreditCard, DollarSign, Percent, Calendar, AlertCircle, GripVertical, ArrowUpDown, Plus, ChevronDown, ChevronUp, Info } from 'lucide-react';
 
 interface DebtListTableProps {
   debts: Debt[];
@@ -21,6 +22,12 @@ const DebtListTable = ({ debts, onEdit, onDelete, onAddNew, onUpdatePriority }: 
   const [sortBy, setSortBy] = useState<SortOption>('balance-desc');
   const [filterType, setFilterType] = useState<string>('all');
   const [draggedDebt, setDraggedDebt] = useState<string | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
+
+  // Calculate monthly interest for each debt
+  const calculateMonthlyInterest = (balance: number, apr: number): number => {
+    return (balance * (apr / 100)) / 12;
+  };
 
   // Find debts with highest interest and largest balance
   const highestInterestDebt = debts.length > 0 ? debts.reduce((max, debt) => debt.apr > max.apr ? debt : max) : null;
@@ -117,10 +124,18 @@ const DebtListTable = ({ debts, onEdit, onDelete, onAddNew, onUpdatePriority }: 
   }
 
   return (
-    <Card className="border-[1.5px] border-[#D4DFE4]">
-      <CardHeader>
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <CardTitle className="text-[#002B45]">Your Debts ({debts.length})</CardTitle>
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <Card className="border-[1.5px] border-[#D4DFE4]">
+        <CardHeader>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" className="p-0 hover:bg-transparent justify-start">
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-[#002B45]">Your Debts ({debts.length})</CardTitle>
+                  {isOpen ? <ChevronUp className="w-5 h-5 text-[#4F6A7A]" /> : <ChevronDown className="w-5 h-5 text-[#4F6A7A]" />}
+                </div>
+              </Button>
+            </CollapsibleTrigger>
           <div className="flex flex-col sm:flex-row gap-3">
             <Select value={filterType} onValueChange={setFilterType}>
               <SelectTrigger className="w-full sm:w-[180px] border-[#D4DFE4]">
@@ -157,10 +172,11 @@ const DebtListTable = ({ debts, onEdit, onDelete, onAddNew, onUpdatePriority }: 
               <Plus className="w-4 h-4 mr-2" />
               Add Debt
             </Button>
+            </div>
           </div>
-        </div>
-      </CardHeader>
-      <CardContent>
+        </CardHeader>
+        <CollapsibleContent>
+          <CardContent>
         <TooltipProvider>
           <div className="space-y-3">
             {displayedDebts.map((debt, index) => (
@@ -231,9 +247,7 @@ const DebtListTable = ({ debts, onEdit, onDelete, onAddNew, onUpdatePriority }: 
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div className="flex items-center gap-2 cursor-help">
-                            <div className="w-4 h-4 text-[#4F6A7A] flex items-center justify-center text-xs font-bold">
-                              %
-                            </div>
+                            <Percent className="w-4 h-4 text-[#4F6A7A]" />
                             <div>
                               <p className="text-xs text-[#4F6A7A]">APR</p>
                               <p className="font-semibold text-[#002B45]">{debt.apr}%</p>
@@ -270,9 +284,27 @@ const DebtListTable = ({ debts, onEdit, onDelete, onAddNew, onUpdatePriority }: 
                         </div>
                       </div>
                     </div>
+
+                    {/* Impact Information */}
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <div className="flex items-start gap-2">
+                        <Info className="w-4 h-4 text-[#009A8C] mt-0.5 flex-shrink-0" />
+                        <div className="text-sm text-[#3A4F61]">
+                          {debt.isDelinquent ? (
+                            <>Late fees + credit impact risk. Prioritize bringing this current to avoid further damage.</>
+                          ) : debt.apr >= 20 ? (
+                            <>This debt costs ~${calculateMonthlyInterest(debt.balance, debt.apr).toFixed(0)}/month in interest. High APR means more of your payment goes to interest.</>
+                          ) : debt.apr >= 15 ? (
+                            <>Costs ~${calculateMonthlyInterest(debt.balance, debt.apr).toFixed(0)}/month in interest. Consider paying extra to reduce interest charges.</>
+                          ) : (
+                            <>Costs ~${calculateMonthlyInterest(debt.balance, debt.apr).toFixed(0)}/month in interest. Relatively low rate — focus on higher-rate debts first.</>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-shrink-0">
                     <Button
                       variant="outline"
                       size="sm"
@@ -305,10 +337,12 @@ const DebtListTable = ({ debts, onEdit, onDelete, onAddNew, onUpdatePriority }: 
             <p className="text-sm text-blue-800">
               💡 <strong>Tip:</strong> Drag and drop debts to set your custom payoff priority order
             </p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+            </div>
+          )}
+          </CardContent>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
   );
 };
 

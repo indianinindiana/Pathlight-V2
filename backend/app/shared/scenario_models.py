@@ -1,8 +1,13 @@
-from pydantic import BaseModel, Field, computed_field
+from pydantic import BaseModel, Field, computed_field, ConfigDict
 from typing import List, Optional, Literal
 from datetime import datetime
 from datetime import date as date_type
 from enum import Enum
+
+def to_camel(string: str) -> str:
+    """Convert snake_case to camelCase"""
+    components = string.split('_')
+    return components[0] + ''.join(x.title() for x in components[1:])
 
 class PayoffStrategy(str, Enum):
     """Debt payoff strategies"""
@@ -47,6 +52,12 @@ class DebtPayoffSummary(BaseModel):
 
 class PayoffScenario(BaseModel):
     """Complete payoff scenario with schedule and metrics"""
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+        by_alias=True
+    )
+    
     scenario_id: str = Field(..., description="Unique scenario identifier (UUID)")
     name: str = Field(..., description="Scenario name")
     strategy: PayoffStrategy = Field(..., description="Payoff strategy used")
@@ -138,6 +149,12 @@ class OptimizePaymentResponse(BaseModel):
 
 class StrategyRecommendation(BaseModel):
     """Recommendation for best payoff strategy"""
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+        by_alias=True
+    )
+    
     recommended_strategy: PayoffStrategy = Field(..., description="Recommended strategy")
     confidence_score: float = Field(..., ge=0, le=100, description="Confidence in recommendation (0-100)")
     rationale: str = Field(..., description="Explanation of why this strategy is recommended")

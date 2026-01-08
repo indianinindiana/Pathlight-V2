@@ -193,7 +193,7 @@ export function useConversationalFlow(): UseConversationalFlowReturn {
     } catch (error) {
       console.error('Error getting Clara reaction:', error);
       // Fallback message
-      claraMessage = "Thank you for sharing that. Let's keep going.";
+      claraMessage = "Thank you for sharing that 💙 Let's keep going.";
     } finally {
       setIsLoadingClara(false);
     }

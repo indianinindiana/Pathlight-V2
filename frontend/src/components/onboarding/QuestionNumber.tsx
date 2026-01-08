@@ -79,14 +79,23 @@ export const QuestionNumber: React.FC<QuestionNumberProps> = ({
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <h3 className="text-[20px] md:text-[24px] font-semibold text-[#002B45]">
-          {question.label}
-        </h3>
-        {question.helper && (
-          <p className="text-[14px] md:text-[16px] text-[#4F6A7A]">
-            {question.helper}
-          </p>
-        )}
+        <div className="flex items-start gap-3">
+          {question.icon && (
+            <span className="text-3xl flex-shrink-0" role="img" aria-hidden="true">
+              {question.icon}
+            </span>
+          )}
+          <div className="flex-1">
+            <h3 className="text-[20px] md:text-[24px] font-semibold text-[#002B45]">
+              {question.label}
+            </h3>
+            {question.helper && (
+              <p className="text-[14px] md:text-[16px] text-[#4F6A7A] mt-1">
+                {question.helper}
+              </p>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Tier 2: Clara's empathetic clarification */}

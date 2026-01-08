@@ -103,12 +103,10 @@ const DebtEntry = () => {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8 md:py-12 max-w-5xl">
         <div className="mb-8">
-          <h2 className="text-[28px] md:text-[36px] font-bold text-[#002B45] mb-3">
-            Tell us about your debts
+          <h2 className="text-[28px] md:text-[36px] font-bold text-[#002B45] mb-3 flex items-center gap-2">
+            Let's map out your debts
+            <span className="text-[32px] md:text-[40px]" role="img" aria-label="clipboard">📋</span>
           </h2>
-          <p className="text-[16px] md:text-[18px] text-[#3A4F61]">
-            Add each debt individually or upload a CSV file with all your debts
-          </p>
         </div>
 
         {/* Clara's Static Guidance Panel */}
@@ -122,7 +120,7 @@ const DebtEntry = () => {
               />
               <div className="flex-1">
                 <p className="text-[#4F6A7A] text-base leading-relaxed">
-                  Add at least one debt so we can create your snapshot.
+                  Start by adding at least one debt. Once I have that, I can create your snapshot and show you your options.
                 </p>
               </div>
             </div>

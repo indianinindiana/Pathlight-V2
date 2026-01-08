@@ -87,8 +87,8 @@ const Index = () => {
     switch (journeyState) {
       case 'new':
         return {
-          text: 'Get my debt snapshot',
-          subtext: 'Guided by Clara • Takes ~3 minutes',
+          text: 'Get my Debt Snapshot',
+          subtext: null,
           action: handleStartConversation
         };
       case 'debt_entry_started':
@@ -105,8 +105,8 @@ const Index = () => {
         };
       default:
         return {
-          text: 'Get my debt snapshot',
-          subtext: 'Guided by Clara • Takes ~3 minutes',
+          text: 'Get my Debt Snapshot',
+          subtext: null,
           action: handleStartConversation
         };
     }
@@ -190,10 +190,10 @@ const Index = () => {
       <div className="container mx-auto px-4 py-6 md:py-12">
         <div className="max-w-[650px] mx-auto text-center mb-6 md:mb-10">
           <h2 className="text-[26px] md:text-[40px] font-bold text-[#002B45] leading-[1.2] mb-3 md:mb-5">
-            See your clearest path out of debt.
+            Your path out of debt — guided step by step by Clara
           </h2>
           <p className="text-[16px] md:text-[18px] text-[#3A4F61] font-normal max-w-[620px] mx-auto leading-relaxed">
-            Get an instant debt snapshot with AI-powered, judgment-free guidance
+            Get a personalized debt snapshot in ~3 minutes with AI-powered, judgment-free guidance
           </p>
         </div>
 
@@ -209,10 +209,10 @@ const Index = () => {
                 />
                 <div className="flex-1">
                   <h3 className="text-base md:text-lg font-semibold text-[#002B45] mb-1 md:mb-2">
-                    Meet Clara, Your AI Money Advisor
+                    Meet Clara, your AI Money Advisor
                   </h3>
                   <p className="text-xs md:text-sm text-[#3A4F61] leading-relaxed">
-                    Clara helps you organize your debts, spot opportunities, and understand your options — without judgment or pressure.
+                    Clara helps you organize your debts, spot opportunities, and understand your options — judgment-free.
                   </p>
                 </div>
               </div>
@@ -243,19 +243,19 @@ const Index = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mt-6 md:mt-8 max-w-2xl mx-auto">
               <div className="flex flex-col items-center text-center">
                 <Lock className="w-4 h-4 md:w-5 md:h-5 text-[#4F6A7A] mb-1 md:mb-2" strokeWidth={2} />
-                <p className="text-[11px] md:text-[13px] text-[#4F6A7A] leading-snug">No SSN required</p>
+                <p className="text-[11px] md:text-[13px] text-[#4F6A7A] leading-snug">No PII required</p>
               </div>
               <div className="flex flex-col items-center text-center">
                 <Clock className="w-4 h-4 md:w-5 md:h-5 text-[#4F6A7A] mb-1 md:mb-2" strokeWidth={2} />
-                <p className="text-[11px] md:text-[13px] text-[#4F6A7A] leading-snug">Takes just a few minutes</p>
+                <p className="text-[11px] md:text-[13px] text-[#4F6A7A] leading-snug">Get powerful insights within minutes</p>
               </div>
               <div className="flex flex-col items-center text-center">
                 <Heart className="w-4 h-4 md:w-5 md:h-5 text-[#4F6A7A] mb-1 md:mb-2" strokeWidth={2} />
-                <p className="text-[11px] md:text-[13px] text-[#4F6A7A] leading-snug">Judgment-free guidance</p>
+                <p className="text-[11px] md:text-[13px] text-[#4F6A7A] leading-snug">Empathetic guidance</p>
               </div>
               <div className="flex flex-col items-center text-center">
                 <DollarSign className="w-4 h-4 md:w-5 md:h-5 text-[#4F6A7A] mb-1 md:mb-2" strokeWidth={2} />
-                <p className="text-[11px] md:text-[13px] text-[#4F6A7A] leading-snug">Find ways to save money</p>
+                <p className="text-[11px] md:text-[13px] text-[#4F6A7A] leading-snug">Discover ways to save money</p>
               </div>
             </div>
           </div>
@@ -310,18 +310,18 @@ const Index = () => {
               {[
                 {
                   number: "1",
-                  title: "Share Your Situation",
-                  description: "Tell us about your debts, income, and expenses so that we can guide you towards the best path forward."
+                  title: "Get your Debt Snapshot",
+                  description: "Tell Clara about your debts, income, and expenses so she can guide you toward the best path forward."
                 },
                 {
                   number: "2",
                   title: "See Your Options",
-                  description: "Get personalized payoff strategies with clear timelines and savings projections."
+                  description: "Clara recommends a personalized strategy based on your goals with clear timelines and projected savings. Create and compare other strategies."
                 },
                 {
                   number: "3",
                   title: "Take Action",
-                  description: "Choose your path forward with confidence. Export your plan anytime."
+                  description: "Choose your path forward with confidence."
                 }
               ].map(({ number, title, description }) => (
                 <div key={number} className="flex gap-6 items-start">
@@ -353,72 +353,76 @@ const Index = () => {
             <div className="grid md:grid-cols-2 gap-8 md:gap-12">
               {/* Feature 1: Dashboard Overview */}
               <div className="space-y-4">
-                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-8 border-2 border-gray-200 aspect-video flex items-center justify-center">
-                  <div className="text-center">
-                    <DollarSign className="w-16 h-16 text-[#009A8C] mx-auto mb-4" />
-                    <p className="text-gray-500 text-sm">Dashboard Screenshot</p>
-                  </div>
-                </div>
+               <div className="rounded-xl border-2 border-gray-200 overflow-hidden shadow-lg">
+  <img 
+    src="/dashboard-screenshot.png" 
+    alt="PathLight Dashboard showing complete debt overview with metrics and charts"
+    className="w-full h-auto object-contain aspect-video"
+  />
+</div>
                 <div>
                   <h3 className="text-xl font-semibold text-[#002B45] mb-2">
                     Complete Debt Overview
                   </h3>
                   <p className="text-[#3A4F61]">
-                    See all your debts in one place with clear metrics on total balance, monthly payments, and payoff timeline.
+                    See all your debts in one place with Clara helping you understand your current financial situation.
                   </p>
                 </div>
               </div>
 
               {/* Feature 2: Scenario Analysis */}
               <div className="space-y-4">
-                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-8 border-2 border-gray-200 aspect-video flex items-center justify-center">
-                  <div className="text-center">
-                    <RefreshCw className="w-16 h-16 text-[#009A8C] mx-auto mb-4" />
-                    <p className="text-gray-500 text-sm">Scenarios Screenshot</p>
-                  </div>
-                </div>
+                <div className="rounded-xl border-2 border-gray-200 overflow-hidden shadow-lg">
+  <img 
+    src="/scenarios-screenshot.png" 
+    alt="PathLight Scenarios page comparing payoff strategies"
+    className="w-full h-auto object-contain aspect-video bg-gray-50"
+  />
+</div>
                 <div>
                   <h3 className="text-xl font-semibold text-[#002B45] mb-2">
                     Compare Payoff Strategies
                   </h3>
                   <p className="text-[#3A4F61]">
-                    Visualize different approaches—Avalanche, Snowball, or Hybrid—and see which saves you the most money and time.
+                    Visualize different approaches — Snowball, Avalanche, or Hybrid — and see which saves you the most time and money.
                   </p>
                 </div>
               </div>
 
               {/* Feature 3: Financial Assessment */}
               <div className="space-y-4">
-                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-8 border-2 border-gray-200 aspect-video flex items-center justify-center">
-                  <div className="text-center">
-                    <Heart className="w-16 h-16 text-[#009A8C] mx-auto mb-4" />
-                    <p className="text-gray-500 text-sm">Assessment Screenshot</p>
-                  </div>
-                </div>
+                <div className="rounded-xl border-2 border-gray-200 overflow-hidden shadow-lg">
+  <img 
+    src="/assessment-screenshot.png" 
+    alt="PathLight Financial Assessment with personalized insights"
+    className="w-full h-auto object-contain aspect-video bg-gray-50"
+  />
+</div>
                 <div>
                   <h3 className="text-xl font-semibold text-[#002B45] mb-2">
                     Personalized Insights
                   </h3>
                   <p className="text-[#3A4F61]">
-                    Get AI-powered recommendations tailored to your unique financial situation and goals.
+                    Receive AI-powered, Clara-guided recommendations tailored to your unique financial goals.
                   </p>
                 </div>
               </div>
 
               {/* Feature 4: Payoff Timeline */}
               <div className="space-y-4">
-                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-8 border-2 border-gray-200 aspect-video flex items-center justify-center">
-                  <div className="text-center">
-                    <ArrowRight className="w-16 h-16 text-[#009A8C] mx-auto mb-4" />
-                    <p className="text-gray-500 text-sm">Timeline Screenshot</p>
-                  </div>
+                <div className="rounded-xl border-2 border-gray-200 overflow-hidden shadow-lg">
+                  <img
+                    src="/timeline-screenshot.png"
+                    alt="PathLight Payoff Timeline visualization"
+                    className="w-full h-auto object-contain aspect-video bg-gray-50"
+                  />
                 </div>
                 <div>
                   <h3 className="text-xl font-semibold text-[#002B45] mb-2">
                     Visualize Your Payoff Timeline
                   </h3>
                   <p className="text-[#3A4F61]">
-                    See exactly when you'll be debt-free with interactive charts comparing different payoff strategies.
+                    See exactly when you'll be debt-free with interactive charts comparing payoff strategies and event markers.
                   </p>
                 </div>
               </div>
@@ -432,22 +436,19 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center">
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-              Ready to find your path?
+              Ready to find your Path?
             </h2>
             <p className="text-xl text-white/80 mb-8">
-              Join thousands who've taken control of their debt journey
+              Reduce stress, gain clarity, and discover your personalized path to becoming debt-free.
             </p>
             <Button
               size="lg"
               onClick={ctaConfig.action}
               className="bg-[#009A8C] hover:bg-[#007F74] text-white font-semibold text-[18px] py-4 px-12 rounded-xl shadow-xl hover:shadow-2xl transition-all duration-200 hover:scale-[1.02]"
             >
-              {ctaConfig.text}
+              Get my Debt Snapshot
               <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
-            <p className="text-white/60 text-sm mt-6">
-              Reduce stress, gain clarity and discover the best path to becoming debt-free
-            </p>
           </div>
         </div>
       </div>

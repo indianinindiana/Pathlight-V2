@@ -499,7 +499,7 @@ const DebtEntryForm = ({ onAdd, onCancel, editingDebt, onUpdate }: DebtEntryForm
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="apr" className="text-[#002B45] font-medium">APR (%)</Label>
+              <Label htmlFor="apr" className="text-[#002B45] font-medium">APR</Label>
               <Input
                 id="apr"
                 type="number"

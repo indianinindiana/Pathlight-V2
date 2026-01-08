@@ -62,7 +62,7 @@ export function useFinancialAssessment({
       };
 
       const response = await fetch(
-        `${API_BASE_URL}/personalization/financial-assessment`,
+        `${API_BASE_URL}/api/v1/personalization/financial-assessment`,
         {
           method: 'POST',
           headers: {
@@ -136,7 +136,7 @@ export function useFinancialAssessmentLazy() {
 
       try {
         const response = await fetch(
-          `${API_BASE_URL}/personalization/financial-assessment`,
+          `${API_BASE_URL}/api/v1/personalization/financial-assessment`,
           {
             method: 'POST',
             headers: {

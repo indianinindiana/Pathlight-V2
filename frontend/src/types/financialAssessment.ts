@@ -214,18 +214,18 @@ export interface DriverConfig {
 
 export const DRIVER_CONFIGS: Record<DriverType, DriverConfig> = {
   [DriverType.DELINQUENCY]: {
-    label: 'Delinquency',
+    label: 'Missed Payment Risk',
     icon: '⏰',
-    description: 'Missed or late payments',
+    description: 'Missed or late payments increasing fees and credit damage',
   },
   [DriverType.HIGH_RATE]: {
-    label: 'High Interest',
+    label: 'High Interest Costs',
     icon: '💰',
-    description: 'High interest rates (≥20% APR)',
+    description: 'High interest rates (≥15% APR) increasing total cost',
   },
   [DriverType.COMPLEXITY]: {
-    label: 'Complexity',
+    label: 'Number of Debt Accounts',
     icon: '📊',
-    description: 'Multiple debt accounts',
+    description: 'Multiple accounts making debt harder to manage',
   },
 };

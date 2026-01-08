@@ -252,17 +252,6 @@ const CSVImportDialog = ({ onImportComplete }: CSVImportDialogProps) => {
               )}
             </div>
           )}
-
-          {/* Close Button */}
-          <div className="flex justify-end pt-4">
-            <Button
-              variant="outline"
-              onClick={handleClose}
-              className="border-[#D4DFE4] text-[#002B45]"
-            >
-              Close
-            </Button>
-          </div>
         </div>
       </DialogContent>
     </Dialog>

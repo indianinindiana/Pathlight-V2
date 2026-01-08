@@ -168,7 +168,7 @@ def simulate_payoff_scenario(
             # Add to schedule
             schedule.append(PayoffScheduleItem(
                 month=current_month,
-                date=current_date,
+                payment_date=current_date,
                 debt_id=debt.id,
                 debt_name=debt.name,
                 payment=payment_amount,

@@ -62,17 +62,17 @@ export const ConversationalContainer: React.FC<ConversationalContainerProps> = (
   const containerRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom when new content is added
+  // Auto-scroll to bottom when new content is added (smooth, no page refresh)
   useEffect(() => {
     if (endRef.current) {
-      requestAnimationFrame(() => {
-        window.scrollTo({
-          top: document.documentElement.scrollHeight,
-          behavior: 'smooth'
-        });
-      });
+      // Use a slight delay to ensure DOM has updated
+      const timeoutId = setTimeout(() => {
+        endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }, 100);
+      
+      return () => clearTimeout(timeoutId);
     }
-  }, [history, currentQuestion, isLoadingClara, isComplete]);
+  }, [history.length, currentQuestion, isLoadingClara, isComplete]);
 
   return (
     <div
@@ -80,12 +80,6 @@ export const ConversationalContainer: React.FC<ConversationalContainerProps> = (
       className="w-full max-w-3xl mx-auto space-y-6 py-8 bg-gradient-to-br from-[#E7F7F4]/20 to-white/50 rounded-2xl"
       style={{ overflow: 'visible' }}
     >
-      {/* Optional visual boundary label */}
-      {history.length > 0 && !isComplete && (
-        <div className="text-center">
-          <p className="text-xs text-[#4F6A7A] uppercase tracking-wide">Clara is helping you</p>
-        </div>
-      )}
       {/* Clara's Intro Message */}
       {history.length === 0 && !isComplete && (
         <Card className="border-none shadow-sm bg-gradient-to-br from-[#E7F7F4] to-white">
@@ -98,10 +92,10 @@ export const ConversationalContainer: React.FC<ConversationalContainerProps> = (
               />
               <div className="flex-1 space-y-2">
                 <p className="text-[#002B45] text-base leading-relaxed">
-                  Hi! I'm Clara. I'm here to help you take control of your debt and build a plan that actually works for you.
+                  Hi! 👋 I'm Clara. I'm here to help you take control of your debt and build a plan that actually works for you.
                 </p>
                 <p className="text-[#4F6A7A] text-sm leading-relaxed">
-                  I'll ask you a few questions to understand your situation. This should only take a few minutes, and everything you share stays private.
+                  I'll ask you a few questions to understand your situation. This should only take a few minutes, and everything you share stays private 💙
                 </p>
               </div>
             </div>
@@ -195,24 +189,68 @@ export const ConversationalContainer: React.FC<ConversationalContainerProps> = (
         </div>
       )}
 
-      {/* Completion State - Clara's closing message */}
+      {/* Completion State - Clara's closing message with CTA */}
       {isComplete && (
-        <Card className="border-none shadow-sm bg-gradient-to-br from-[#E7F7F4] to-white">
-          <CardContent className="p-8">
-            <div className="flex items-start gap-3">
-              <img
-                src="/clara-avatar.png"
-                alt="Clara"
-                className="w-10 h-10 md:w-12 md:h-12 rounded-full flex-shrink-0 object-cover"
-              />
-              <div className="flex-1">
-                <p className="text-[#002B45] text-base leading-relaxed">
-                  Thanks — that helps me understand what matters most to you. Next, you'll enter your debts all at once so I can create your snapshot.
-                </p>
+        <div className="space-y-4">
+          <Card className="border-none shadow-sm bg-gradient-to-br from-[#E7F7F4] to-white">
+            <CardContent className="p-8">
+              <div className="flex items-start gap-3">
+                <img
+                  src="/clara-avatar.png"
+                  alt="Clara"
+                  className="w-10 h-10 md:w-12 md:h-12 rounded-full flex-shrink-0 object-cover"
+                />
+                <div className="flex-1 space-y-4">
+                  <div className="space-y-3">
+                    <p className="text-[#002B45] text-base leading-relaxed">
+                      You're doing great 👍 — thanks for sharing all of that with me 💙
+                    </p>
+                    <p className="text-[#002B45] text-base leading-relaxed">
+                      Next, we'll map out your debts so I can put everything together and show you a clear path forward ✨
+                    </p>
+                  </div>
+                  
+                  <div className="bg-white/50 rounded-lg p-4 border border-[#009A8C]/20">
+                    <p className="text-sm font-semibold text-[#002B45] mb-3">
+                      What to have ready:
+                    </p>
+                    <ul className="text-sm text-[#4F6A7A] space-y-2">
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#009A8C] mt-0.5">✓</span>
+                        <span>Current balance for each debt</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#009A8C] mt-0.5">✓</span>
+                        <span>Interest rate (APR)</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#009A8C] mt-0.5">✓</span>
+                        <span>Minimum monthly payment</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#009A8C] mt-0.5">✓</span>
+                        <span>Payment Due Date</span>
+                      </li>
+                    </ul>
+                    <p className="text-sm text-[#4F6A7A] mt-3 italic">
+                      You don't need everything perfectly — estimates are okay.
+                    </p>
+                  </div>
+                  
+                  <button
+                    onClick={onComplete}
+                    className="w-full bg-[#009A8C] hover:bg-[#007F74] text-white font-semibold py-4 px-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 hover:scale-[1.02] flex items-center justify-center gap-2"
+                  >
+                    <span>Continue to Debt Entry</span>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                  </button>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {/* Auto-scroll anchor */}

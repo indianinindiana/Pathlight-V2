@@ -1,7 +1,6 @@
 // frontend/src/components/onboarding/QuestionSlider.tsx
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { useState, useEffect, useRef } from 'react';
 import { Slider } from '@/components/ui/slider';
 import { OnboardingQuestion } from '@/lib/onboardingQuestions';
 
@@ -28,7 +27,37 @@ export const QuestionSlider: React.FC<QuestionSliderProps> = ({
   }
 
   const [value, setValue] = useState<number>(sliderConfig.min);
+  const [hasInteracted, setHasInteracted] = useState(false);
+  const submitTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const currentLabel = sliderConfig.labels[value - sliderConfig.min];
+  const currentEmoji = sliderConfig.emojis?.[value - sliderConfig.min];
+
+  // Auto-submit after user releases the slider (2000ms / 2 second delay)
+  useEffect(() => {
+    if (hasInteracted) {
+      // Clear any existing timeout
+      if (submitTimeoutRef.current) {
+        clearTimeout(submitTimeoutRef.current);
+      }
+
+      // Set new timeout to auto-submit (2 seconds gives user time to explore)
+      submitTimeoutRef.current = setTimeout(() => {
+        onAnswer(value);
+      }, 2000);
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (submitTimeoutRef.current) {
+        clearTimeout(submitTimeoutRef.current);
+      }
+    };
+  }, [value, hasInteracted, onAnswer]);
+
+  const handleValueChange = (newValue: number[]) => {
+    setValue(newValue[0]);
+    setHasInteracted(true);
+  };
 
   return (
     <div className="space-y-6">
@@ -44,8 +73,13 @@ export const QuestionSlider: React.FC<QuestionSliderProps> = ({
       </div>
 
       <div className="space-y-6 bg-white rounded-lg p-6 border-2 border-[#D4DFE4]">
-        {/* Current Selection Display */}
-        <div className="text-center min-h-[60px] flex items-center justify-center">
+        {/* Current Selection Display with Emoji */}
+        <div className="text-center min-h-[80px] flex flex-col items-center justify-center gap-3">
+          {currentEmoji && (
+            <div className="text-5xl" role="img" aria-hidden="true">
+              {currentEmoji}
+            </div>
+          )}
           <p className="text-[16px] md:text-[18px] text-[#002B45] font-medium">
             {currentLabel}
           </p>
@@ -55,36 +89,43 @@ export const QuestionSlider: React.FC<QuestionSliderProps> = ({
         <div className="space-y-4">
           <Slider
             value={[value]}
-            onValueChange={(newValue) => setValue(newValue[0])}
+            onValueChange={handleValueChange}
             min={sliderConfig.min}
             max={sliderConfig.max}
             step={1}
             className="w-full"
           />
           
-          {/* Numeric Labels */}
+          {/* Emoji or Numeric Labels */}
           <div className="flex justify-between text-xs text-[#4F6A7A] px-1">
             {Array.from(
               { length: sliderConfig.max - sliderConfig.min + 1 },
               (_, i) => i + sliderConfig.min
-            ).map((num) => (
-              <span 
+            ).map((num, idx) => (
+              <span
                 key={num}
-                className={`${value === num ? 'font-bold text-[#009A8C]' : ''}`}
+                className={`flex flex-col items-center gap-1 ${value === num ? 'font-bold text-[#009A8C]' : ''}`}
               >
-                {num}
+                {sliderConfig.emojis ? (
+                  <span className="text-xl" role="img" aria-hidden="true">
+                    {sliderConfig.emojis[idx]}
+                  </span>
+                ) : (
+                  <span>{num}</span>
+                )}
               </span>
             ))}
           </div>
         </div>
 
-        {/* Continue Button */}
-        <Button
-          className="w-full bg-[#009A8C] hover:bg-[#007F74] text-white py-6 text-[16px]"
-          onClick={() => onAnswer(value)}
-        >
-          Continue
-        </Button>
+        {/* Auto-submit indicator */}
+        {hasInteracted && (
+          <div className="text-center">
+            <p className="text-sm text-[#4F6A7A] italic">
+              Submitting your response...
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

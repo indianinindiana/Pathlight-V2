@@ -6,6 +6,7 @@ Usage: python create_test_profiles.py
 """
 import asyncio
 from datetime import datetime, timedelta
+from app.shared.financial_assessment import FinancialMetrics
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 from dotenv import load_dotenv
@@ -21,10 +22,15 @@ async def create_test_profiles():
     profiles_collection = db.profiles
     debts_collection = db.debts
     
+    print("Clearing existing test data...")
+    await profiles_collection.delete_many({})
+    await debts_collection.delete_many({})
+    print("Existing test data cleared.\n")
+    
     print("Creating test profiles with sample debts...\n")
     
     # Profile 1: Young Professional with Credit Card Debt
-    profile1_id = "test_profile_young_professional"
+    profile1_id = "test-profile-1"
     profile1 = {
         "user_id": profile1_id,
         "stress_level": 3,
@@ -35,9 +41,22 @@ async def create_test_profiles():
         "primary_goal": "pay-faster",
         "employment_status": "full-time",
         "age_range": "25-34",
-        "life_events": ["new-job"],
+        "life_events": "new-job",
         "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow()
+        "updated_at": datetime.utcnow(),
+        "financial_metrics": {
+            "monthly_income": 5500,
+            "monthly_expenses": 4200,
+            "liquid_savings": 2500,
+            "total_minimum_payments": 891
+        },
+        "user_context": {
+            "primaryGoal": "BECOME_DEBT_FREE",
+            "stressLevel": "MEDIUM",
+            "employmentStatus": "STABLE",
+            "lifeEvents": "NONE",
+            "ageRange": "AGE_25_34"
+        }
     }
     
     await profiles_collection.delete_many({"user_id": profile1_id})
@@ -108,7 +127,7 @@ async def create_test_profiles():
     print(f"  Debts: {len(debts1)} tradelines\n")
     
     # Profile 2: Family with Mortgage and Auto Loan
-    profile2_id = "test_profile_family_homeowner"
+    profile2_id = "test-profile-2"
     profile2 = {
         "user_id": profile2_id,
         "stress_level": 4,
@@ -119,9 +138,22 @@ async def create_test_profiles():
         "primary_goal": "reduce-interest",
         "employment_status": "full-time",
         "age_range": "35-44",
-        "life_events": ["bought-home", "had-child"],
+        "life_events": "bought-home",
         "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow()
+        "updated_at": datetime.utcnow(),
+        "financial_metrics": {
+            "monthly_income": 8500,
+            "monthly_expenses": 6800,
+            "liquid_savings": 5000,
+            "total_minimum_payments": 2701
+        },
+        "user_context": {
+            "primaryGoal": "LOWER_PAYMENTS",
+            "stressLevel": "HIGH",
+            "employmentStatus": "STABLE",
+            "lifeEvents": "BABY",
+            "ageRange": "AGE_35_44"
+        }
     }
     
     await profiles_collection.delete_many({"user_id": profile2_id})
@@ -209,7 +241,7 @@ async def create_test_profiles():
     print(f"  Debts: {len(debts2)} tradelines\n")
     
     # Profile 3: High Debt Stress Case
-    profile3_id = "test_profile_high_stress"
+    profile3_id = "test-profile-3"
     profile3 = {
         "user_id": profile3_id,
         "stress_level": 5,
@@ -220,9 +252,22 @@ async def create_test_profiles():
         "primary_goal": "avoid-default",
         "employment_status": "part-time",
         "age_range": "25-34",
-        "life_events": ["job-loss", "medical-emergency"],
+        "life_events": "job-loss",
         "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow()
+        "updated_at": datetime.utcnow(),
+        "financial_metrics": {
+            "monthly_income": 4200,
+            "monthly_expenses": 3800,
+            "liquid_savings": 300,
+            "total_minimum_payments": 769
+        },
+        "user_context": {
+            "primaryGoal": "AVOID_DEFAULT",
+            "stressLevel": "VERY_HIGH",
+            "employmentStatus": "UNSTABLE",
+            "lifeEvents": "JOB_LOSS",
+            "ageRange": "AGE_25_34"
+        }
     }
     
     await profiles_collection.delete_many({"user_id": profile3_id})
@@ -319,7 +364,7 @@ async def create_test_profiles():
     print(f"  Debts: {len(debts3)} tradelines\n")
     
     # Profile 4: Diverse Portfolio
-    profile4_id = "test_profile_diverse"
+    profile4_id = "test-profile-4"
     profile4 = {
         "user_id": profile4_id,
         "stress_level": 2,
@@ -330,9 +375,22 @@ async def create_test_profiles():
         "primary_goal": "pay-faster",
         "employment_status": "full-time",
         "age_range": "45-59",
-        "life_events": ["career-change"],
+        "life_events": "career-change",
         "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow()
+        "updated_at": datetime.utcnow(),
+        "financial_metrics": {
+            "monthly_income": 12000,
+            "monthly_expenses": 8500,
+            "liquid_savings": 15000,
+            "total_minimum_payments": 4112
+        },
+        "user_context": {
+            "primaryGoal": "BECOME_DEBT_FREE",
+            "stressLevel": "LOW",
+            "employmentStatus": "STABLE",
+            "lifeEvents": "NONE",
+            "ageRange": "AGE_45_54"
+        }
     }
     
     await profiles_collection.delete_many({"user_id": profile4_id})
@@ -483,6 +541,149 @@ async def create_test_profiles():
     print(f"  Profile ID: {profile4_id}")
     print(f"  Total Debt: ${sum(d['balance'] for d in debts4):,.2f}")
     print(f"  Debts: {len(debts4)} tradelines\n")
+
+    # Profile 5: Declined John
+    profile5_id = "test-profile-5"
+    profile5 = {
+        "user_id": profile5_id,
+        "stress_level": 4,
+        "monthly_income": 3500,
+        "monthly_expenses": 3000,
+        "liquid_savings": 250,
+        "credit_score_range": "580-669",
+        "primary_goal": "get-approved",
+        "employment_status": "full-time",
+        "age_range": "25-34",
+        "life_events": [],
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+        "financial_metrics": {
+            "monthly_income": 3500,
+            "monthly_expenses": 3000,
+            "liquid_savings": 250,
+            "total_minimum_payments": 0
+        },
+        "user_context": {
+            "primaryGoal": "IMPROVE_CREDIT",
+            "stressLevel": "MEDIUM",
+            "employmentStatus": "STABLE",
+            "lifeEvents": "NONE",
+            "ageRange": "AGE_25_34"
+        }
+    }
+
+    await profiles_collection.delete_many({"user_id": profile5_id})
+    await profiles_collection.insert_one(profile5)
+    await debts_collection.delete_many({"profile_id": profile5_id})
+    
+    print(f"✓ Profile 5: Declined John")
+    print(f"  Profile ID: {profile5_id}")
+    print(f"  Total Debt: $0.00")
+    print(f"  Debts: 0 tradelines\n")
+
+    # Profile 6: Credit Card–Ridden Paula
+    profile6_id = "test-profile-6"
+    profile6 = {
+        "user_id": profile6_id,
+        "stress_level": 5,
+        "monthly_income": 4000,
+        "monthly_expenses": 3500,
+        "liquid_savings": 0,
+        "credit_score_range": "<580",
+        "primary_goal": "lower-payments",
+        "employment_status": "full-time",
+        "age_range": "45-59",
+        "life_events": [],
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+        "financial_metrics": {
+            "monthly_income": 4000,
+            "monthly_expenses": 3500,
+            "liquid_savings": 0,
+            "total_minimum_payments": 1217
+        },
+        "user_context": {
+            "primaryGoal": "LOWER_PAYMENTS",
+            "stressLevel": "VERY_HIGH",
+            "employmentStatus": "STABLE",
+            "lifeEvents": "NONE",
+            "ageRange": "AGE_45_54"
+        }
+    }
+    
+    await profiles_collection.delete_many({"user_id": profile6_id})
+    await profiles_collection.insert_one(profile6)
+
+    debts6 = [
+        {
+            "profile_id": profile6_id,
+            "type": "credit-card",
+            "name": "Credit Card 1",
+            "balance": 14500,
+            "apr": 29,
+            "minimum_payment": 435,
+            "next_payment_date": datetime.utcnow() + timedelta(days=5),
+            "is_delinquent": True,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        },
+        {
+            "profile_id": profile6_id,
+            "type": "credit-card",
+            "name": "Credit Card 2",
+            "balance": 11800,
+            "apr": 27,
+            "minimum_payment": 354,
+            "next_payment_date": datetime.utcnow() + timedelta(days=10),
+            "is_delinquent": True,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        },
+        {
+            "profile_id": profile6_id,
+            "type": "credit-card",
+            "name": "Credit Card 3",
+            "balance": 7200,
+            "apr": 25,
+            "minimum_payment": 216,
+            "next_payment_date": datetime.utcnow() + timedelta(days=15),
+            "is_delinquent": False,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        },
+        {
+            "profile_id": profile6_id,
+            "type": "credit-card",
+            "name": "Credit Card 4",
+            "balance": 5400,
+            "apr": 23,
+            "minimum_payment": 162,
+            "next_payment_date": datetime.utcnow() + timedelta(days=20),
+            "is_delinquent": False,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        },
+        {
+            "profile_id": profile6_id,
+            "type": "personal-loan",
+            "name": "Personal Loan",
+            "balance": 6500,
+            "apr": 20,
+            "minimum_payment": 250,
+            "next_payment_date": datetime.utcnow() + timedelta(days=25),
+            "is_delinquent": False,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+    ]
+
+    await debts_collection.delete_many({"profile_id": profile6_id})
+    await debts_collection.insert_many(debts6)
+    print(f"✓ Profile 6: Credit Card–Ridden Paula")
+    print(f"  Profile ID: {profile6_id}")
+    print(f"  Total Debt: ${sum(d['balance'] for d in debts6):,.2f}")
+    print(f"  Debts: {len(debts6)} tradelines\n")
+
     
     print("=" * 60)
     print("Test profiles created successfully!")
@@ -493,6 +694,8 @@ async def create_test_profiles():
     print(f"http://localhost:5173/?profileId={profile3_id}")
     print(f"http://localhost:5173/?profileId={profile4_id}")
     print("\nOr use localStorage in browser console:")
+    print(f"http://localhost:5173/?profileId={profile5_id}")
+    print(f"http://localhost:5173/?profileId={profile6_id}")
     print(f"localStorage.setItem('debtPathfinderSession', JSON.stringify({{profileId: '{profile1_id}'}}))")
     
     client.close()

@@ -67,15 +67,10 @@ export const ChoiceChips: React.FC<ChoiceChipsProps> = ({
             {question.helper}
           </p>
         )}
-        {multiSelect && (
-          <p className="text-[14px] text-[#4F6A7A] italic">
-            You can pick more than one if it applies.
-          </p>
-        )}
       </div>
 
-      {/* Choice Chips */}
-      <div className="flex flex-col gap-3">
+      {/* Choice Chips - Chat Style */}
+      <div className="flex flex-col gap-2.5">
         {question.options?.map((option) => {
           const isSelected = multiSelect && selectedValues.includes(option.value);
           
@@ -85,18 +80,24 @@ export const ChoiceChips: React.FC<ChoiceChipsProps> = ({
               onClick={() => handleChipClick(option.value)}
               disabled={isAnimating}
               className={`
-                w-full text-left px-5 py-3 rounded-3xl border-[1.5px] 
-                transition-all duration-200 
-                ${isSelected 
-                  ? 'border-[#009A8C] bg-[#E7F7F4] text-[#002B45]' 
-                  : 'border-[#D4DFE4] bg-white text-[#002B45] hover:border-[#009A8C] hover:bg-[#E7F7F4]'
+                flex items-center gap-3 px-4 py-3 rounded-2xl
+                transition-all duration-200
+                shadow-sm hover:shadow-md
+                ${isSelected
+                  ? 'border-2 border-[#009A8C] bg-[#E7F7F4] text-[#002B45]'
+                  : 'border border-gray-200 bg-white text-[#002B45] hover:border-[#009A8C] hover:bg-[#F7F9FA]'
                 }
                 ${isAnimating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer active:scale-[0.98]'}
                 focus:outline-none focus:ring-2 focus:ring-[#009A8C] focus:ring-offset-2
               `}
               aria-label={`Response option: ${option.label}. Press Enter to respond.`}
             >
-              <span className="text-[16px]">{option.label}</span>
+              {option.icon && (
+                <span className="text-2xl flex-shrink-0" role="img" aria-hidden="true">
+                  {option.icon}
+                </span>
+              )}
+              <span className="text-[15px] flex-1 text-left">{option.label}</span>
             </button>
           );
         })}

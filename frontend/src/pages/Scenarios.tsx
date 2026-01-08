@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Download, Lightbulb, TrendingDown, Calendar, Shield, Target, Heart, Trash2, Edit2, Zap, Link2, Info, HelpCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ArrowLeft, Download, Lightbulb, TrendingDown, Calendar, Shield, Target, Heart, Trash2, Edit2, Zap, Link2, Info, HelpCircle, Star, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -24,6 +26,7 @@ import { useFinancialAssessment } from '@/hooks/useFinancialAssessment';
 import { Goal, StressLevel, EmploymentStatus, LifeEvent, AgeRange, RiskBand } from '@/types/financialAssessment';
 import { trackPageView, trackEvent, checkMilestones } from '@/services/analyticsApi';
 import { getSessionId } from '@/services/sessionManager';
+import { getStrategyRecommendation, getConfidenceScore, StrategyRecommendation } from '@/services/scenarioApi';
 
 const MAX_CUSTOM_SCENARIOS = 5;
 const MAX_COMPARISON_SCENARIOS = 3;
@@ -44,6 +47,10 @@ const Scenarios = () => {
   const [showRecommendationModal, setShowRecommendationModal] = useState(false);
   const [showStrategyInfoModal, setShowStrategyInfoModal] = useState(false);
   const [selectedStrategyInfo, setSelectedStrategyInfo] = useState<'snowball' | 'avalanche' | 'custom' | null>(null);
+  const [strategyRecommendation, setStrategyRecommendation] = useState<StrategyRecommendation | null>(null);
+  const [confidenceScore, setConfidenceScore] = useState<number | null>(null);
+  const [isCustomBuilderOpen, setIsCustomBuilderOpen] = useState(false);
+  const [loadingRecommendation, setLoadingRecommendation] = useState(false);
 
   // Helper: Check if debt can be consolidated
   const canConsolidate = (debt: any) => {
@@ -265,6 +272,42 @@ const Scenarios = () => {
       setSelectedStrategy(recommendation.recommendedStrategy as PayoffStrategy);
     }
   }, [recommendation, assessmentLoading]);
+
+  // Fetch strategy recommendation from backend API
+  useEffect(() => {
+    const fetchRecommendation = async () => {
+      if (!profileId || debts.length === 0 || !financialContext) return;
+      
+      setLoadingRecommendation(true);
+      try {
+        // Calculate available amount for debt payment (income - expenses)
+        const netCashFlow = financialContext.monthlyIncome - financialContext.monthlyExpenses;
+        // Ensure we have at least minimum payment amount
+        const minPayment = calculateTotalMinimumPayment(debts);
+        const availableAmount = Math.max(netCashFlow, minPayment * 1.1);
+        
+        // Fetch strategy recommendation
+        const recommendation = await getStrategyRecommendation({
+          profile_id: profileId,
+          monthly_payment: availableAmount,
+          start_date: new Date().toISOString().split('T')[0],
+        });
+        
+        setStrategyRecommendation(recommendation);
+        
+        // Fetch confidence score
+        const confidence = await getConfidenceScore(profileId);
+        setConfidenceScore(confidence.confidence_score);
+        
+      } catch (error) {
+        console.error('Error fetching recommendation:', error);
+      } finally {
+        setLoadingRecommendation(false);
+      }
+    };
+    
+    fetchRecommendation();
+  }, [profileId, debts, financialContext]);
 
   const generateDefaultScenarios = () => {
     const minPayment = calculateTotalMinimumPayment(debts);
@@ -535,7 +578,6 @@ const Scenarios = () => {
               </h1>
             </div>
             <div className="flex items-center gap-3">
-              {profileId && <ExportDialog profileId={profileId} />}
               <Button
                 variant="outline"
                 onClick={() => navigate('/dashboard')}
@@ -551,16 +593,141 @@ const Scenarios = () => {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8 md:py-12 max-w-7xl">
+        {/* Updated Header with Clara */}
         <div className="mb-8">
           <h2 className="text-[28px] md:text-[36px] font-bold text-[#002B45] mb-3">
-            Compare Payoff Strategies
+            Explore Your Path to Becoming Debt-Free
           </h2>
-          <p className="text-[16px] md:text-[18px] text-[#3A4F61]">
-            See how different approaches can help you become debt-free
-          </p>
+          <div className="flex items-start gap-3">
+            <img
+              src="/clara-avatar.png"
+              alt="Clara AI"
+              className="w-10 h-10 md:w-12 md:h-12 rounded-full flex-shrink-0"
+            />
+            <p className="text-[16px] md:text-[18px] text-[#3A4F61] pt-1">
+              Clara has analyzed your profile and recommends a plan tailored to you.
+            </p>
+          </div>
         </div>
 
-        {/* Recommendation Banner - Removed, will be shown as badge on cards */}
+        {/* Loading State for Recommendation */}
+        {loadingRecommendation && (
+          <Card className="border-[1.5px] border-[#D4DFE4] mb-8">
+            <CardContent className="py-8 text-center">
+              <div className="flex flex-col items-center gap-3">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#009A8C]"></div>
+                <p className="text-[#3A4F61]">Clara is analyzing your profile...</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Recommended Strategy Section */}
+        {!loadingRecommendation && strategyRecommendation && strategyRecommendation.snowball_scenario && strategyRecommendation.avalanche_scenario && (
+          <Card className="border-[1.5px] border-[#009A8C] bg-gradient-to-br from-[#E7F7F4] to-white mb-8 shadow-lg">
+            <CardHeader>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-6 h-6 text-[#009A8C]" />
+                  <CardTitle className="text-[#002B45] text-xl">Recommended Strategy</CardTitle>
+                </div>
+                <Badge className="bg-[#009A8C] text-white hover:bg-[#007F74] border-0 flex items-center gap-1.5 px-3 py-1">
+                  <Star className="w-4 h-4 fill-current" />
+                  {strategyRecommendation.recommended_strategy === 'snowball' ? 'Snowball' :
+                   strategyRecommendation.recommended_strategy === 'avalanche' ? 'Avalanche' : 'Hybrid'}
+                </Badge>
+              </div>
+              {confidenceScore && (
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="text-sm text-[#4F6A7A]">Confidence:</span>
+                  <Badge variant="outline" className="border-[#009A8C] text-[#009A8C]">
+                    {Math.round(confidenceScore)}%
+                  </Badge>
+                </div>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Key Metrics */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white rounded-lg p-4 border border-[#D4DFE4]">
+                  <div className="flex items-center gap-2 mb-1">
+                    <TrendingDown className="w-4 h-4 text-[#4F6A7A]" />
+                    <p className="text-xs text-[#4F6A7A]">Monthly Payment</p>
+                  </div>
+                  <p className="text-lg font-bold text-[#002B45]">
+                    ${Math.round(strategyRecommendation.recommended_strategy === 'snowball'
+                      ? strategyRecommendation.snowball_scenario.monthlyPayment
+                      : strategyRecommendation.avalanche_scenario.monthlyPayment).toLocaleString()}
+                  </p>
+                </div>
+                
+                <div className="bg-white rounded-lg p-4 border border-[#D4DFE4]">
+                  <div className="flex items-center gap-2 mb-1">
+                    <TrendingDown className="w-4 h-4 text-[#4F6A7A]" />
+                    <p className="text-xs text-[#4F6A7A]">Interest Saved</p>
+                  </div>
+                  <p className="text-lg font-bold text-[#009A8C]">
+                    ${Math.abs(Math.round(strategyRecommendation.interest_difference)).toLocaleString()}
+                  </p>
+                </div>
+                
+                <div className="bg-white rounded-lg p-4 border border-[#D4DFE4]">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Calendar className="w-4 h-4 text-[#4F6A7A]" />
+                    <p className="text-xs text-[#4F6A7A]">Debt-Free Date</p>
+                  </div>
+                  <p className="text-lg font-bold text-[#002B45]">
+                    {new Date(strategyRecommendation.recommended_strategy === 'snowball'
+                      ? strategyRecommendation.snowball_scenario.payoffDate
+                      : strategyRecommendation.avalanche_scenario.payoffDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                  </p>
+                </div>
+                
+                <div className="bg-white rounded-lg p-4 border border-[#D4DFE4]">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Calendar className="w-4 h-4 text-[#4F6A7A]" />
+                    <p className="text-xs text-[#4F6A7A]">Time to Payoff</p>
+                  </div>
+                  <p className="text-lg font-bold text-[#002B45]">
+                    {strategyRecommendation.recommended_strategy === 'snowball'
+                      ? strategyRecommendation.snowball_scenario.totalMonths
+                      : strategyRecommendation.avalanche_scenario.totalMonths} months
+                  </p>
+                  {Math.abs(strategyRecommendation.time_difference_months) > 0 && (
+                    <p className="text-xs text-[#009A8C] mt-1">
+                      {Math.abs(strategyRecommendation.time_difference_months)} months faster
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Clara's Explanation */}
+              <div className="bg-white rounded-lg p-4 border border-[#D4DFE4]">
+                <div className="flex items-start gap-3">
+                  <img
+                    src="/clara-avatar.png"
+                    alt="Clara"
+                    className="w-8 h-8 rounded-full flex-shrink-0 mt-1"
+                  />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-[#002B45] mb-2">Clara says:</p>
+                    <p className="text-sm text-[#3A4F61] leading-relaxed">
+                      {strategyRecommendation.rationale}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Primary CTA */}
+              <Button
+                onClick={() => navigate('/dashboard')}
+                className="w-full bg-[#009A8C] hover:bg-[#007F74] text-white rounded-xl py-6 text-lg font-semibold shadow-lg"
+              >
+                Start This Plan Today
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Comparison Limit Alert */}
         {selectedScenarios.length === MAX_COMPARISON_SCENARIOS && (
@@ -573,22 +740,51 @@ const Scenarios = () => {
           </Card>
         )}
 
-        {/* Interactive Scenario Builder */}
-        <Card className="border-[1.5px] border-[#D4DFE4] mb-8">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-[#002B45]">Build Your Custom Plan</CardTitle>
-                <CardDescription className="text-[#3A4F61]">
-                  Adjust your monthly payment and strategy to see how it affects your payoff timeline
-                </CardDescription>
-              </div>
-              <div className="text-sm text-[#4F6A7A]">
-                {customScenarios.length}/{MAX_CUSTOM_SCENARIOS} custom scenarios
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
+        {/* Custom Strategy Builder - Collapsible */}
+        <Collapsible open={isCustomBuilderOpen} onOpenChange={setIsCustomBuilderOpen} className="mb-8">
+          <Card className="border-[1.5px] border-[#D4DFE4]">
+            <CollapsibleTrigger asChild>
+              <CardHeader className="cursor-pointer hover:bg-gray-50/50 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-[#E7F7F4] rounded-lg">
+                      <Lightbulb className="w-5 h-5 text-[#009A8C]" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-[#002B45]">Build Your Own Custom Strategy</CardTitle>
+                      <CardDescription className="text-[#3A4F61]">
+                        Test different strategies, consolidation, and what-if scenarios
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-[#4F6A7A]">
+                      {customScenarios.length}/{MAX_CUSTOM_SCENARIOS} scenarios
+                    </span>
+                    {isCustomBuilderOpen ? (
+                      <ChevronUp className="w-5 h-5 text-[#4F6A7A]" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-[#4F6A7A]" />
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="space-y-6 pt-0">
+                {/* Clara Helper Text */}
+                <div className="bg-[#E7F7F4] rounded-lg p-4 border border-[#009A8C]/20">
+                  <div className="flex items-start gap-3">
+                    <img
+                      src="/clara-avatar.png"
+                      alt="Clara"
+                      className="w-8 h-8 rounded-full flex-shrink-0"
+                    />
+                    <p className="text-sm text-[#3A4F61]">
+                      Test how different strategies affect your payoff timeline. I'll help interpret results.
+                    </p>
+                  </div>
+                </div>
             <StrategyToggle
               options={strategyOptions}
               selected={selectedStrategy}
@@ -622,36 +818,23 @@ const Scenarios = () => {
               disabled={customScenarios.length >= MAX_CUSTOM_SCENARIOS}
               className="w-full bg-[#009A8C] hover:bg-[#007F74] text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {customScenarios.length >= MAX_CUSTOM_SCENARIOS 
+              {customScenarios.length >= MAX_CUSTOM_SCENARIOS
                 ? `Maximum ${MAX_CUSTOM_SCENARIOS} Custom Scenarios Reached`
                 : 'Create Custom Scenario'
               }
             </Button>
-          </CardContent>
-        </Card>
 
-        {/* Test What-If Features */}
-        <Card className="border-[1.5px] border-[#009A8C] bg-[#E7F7F4] mb-8">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Lightbulb className="w-5 h-5 text-[#009A8C]" />
-              <CardTitle className="text-[#002B45]">Test New Visualization Features</CardTitle>
-            </div>
-            <CardDescription className="text-[#3A4F61]">
-              Try out consolidation and settlement scenarios to see event markers and enhanced tooltips
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Consolidation and Settlement Scenario Creators */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
               <div className="p-4 bg-white rounded-lg border border-[#D4DFE4]">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="p-2 bg-purple-100 rounded">
                     <Link2 className="w-4 h-4 text-purple-600" />
                   </div>
-                  <h4 className="font-semibold text-[#002B45]">Test Consolidation</h4>
+                  <h4 className="font-semibold text-[#002B45]">Consolidation</h4>
                 </div>
                 <p className="text-sm text-[#3A4F61] mb-3">
-                  Combines your first 2 debts into a single loan at 7.5% APR. Look for the purple marker at month 0.
+                  Combines your first 2 debts into a single loan at 7.5% APR.
                 </p>
                 <Button
                   onClick={handleTestConsolidation}
@@ -659,7 +842,7 @@ const Scenarios = () => {
                   className="w-full bg-purple-600 hover:bg-purple-700 text-white rounded-xl"
                 >
                   <Link2 className="w-4 h-4 mr-2" />
-                  Create Consolidation Test
+                  Create Consolidation Scenario
                 </Button>
               </div>
 
@@ -668,10 +851,10 @@ const Scenarios = () => {
                   <div className="p-2 bg-orange-100 rounded">
                     <Zap className="w-4 h-4 text-orange-600" />
                   </div>
-                  <h4 className="font-semibold text-[#002B45]">Test Settlement</h4>
+                  <h4 className="font-semibold text-[#002B45]">Settlement</h4>
                 </div>
                 <p className="text-sm text-[#3A4F61] mb-3">
-                  Settles your first debt for 50% at month 6. Look for the orange marker showing forgiven amount.
+                  Settles your first debt for 50% at month 6.
                 </p>
                 <Button
                   onClick={handleTestSettlement}
@@ -679,19 +862,14 @@ const Scenarios = () => {
                   className="w-full bg-orange-600 hover:bg-orange-700 text-white rounded-xl"
                 >
                   <Zap className="w-4 h-4 mr-2" />
-                  Create Settlement Test
+                  Create Settlement Scenario
                 </Button>
               </div>
             </div>
-
-            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-sm text-blue-800">
-                <strong>💡 Tip:</strong> After creating a test scenario, select it for comparison to see the event markers on the chart.
-                Hover over the markers to see detailed event information in the tooltip.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
 
         {/* Default Scenarios */}
         <div className="mb-8">
@@ -850,41 +1028,6 @@ const Scenarios = () => {
               </p>
             </CardContent>
           </Card>
-        )}
-
-        {/* Explainability Section */}
-        {recommendation && (
-          <ExplainabilitySection
-            title="Why we recommend this strategy"
-            defaultOpen={false}
-            explanations={[
-              {
-                icon: TrendingDown,
-                title: 'Saves the most interest',
-                description: `${recommendation.recommendedStrategy.charAt(0).toUpperCase() + recommendation.recommendedStrategy.slice(1)} method targets your highest-interest debts first, potentially saving thousands in interest charges`
-              },
-              {
-                icon: Calendar,
-                title: 'Realistic timeline',
-                description: `Based on your available cash flow, this strategy provides a sustainable path to becoming debt-free`
-              },
-              {
-                icon: Shield,
-                title: 'Maintains financial stability',
-                description: 'Keeps your emergency savings intact while making steady progress on debt reduction'
-              },
-              {
-                icon: Target,
-                title: 'Matches your goals',
-                description: `You said you want to ${financialContext?.primaryGoal.replace('-', ' ')} - this strategy aligns with that objective`
-              },
-              {
-                icon: Heart,
-                title: 'Considers your stress level',
-                description: `With your ${financialContext?.stressLevel === 5 ? 'high' : financialContext?.stressLevel === 4 ? 'elevated' : 'moderate'} stress level, this balanced approach provides steady progress without overwhelming you`
-              }
-            ]}
-          />
         )}
 
       </div>

@@ -5,10 +5,10 @@ API endpoints for financial assessment and personalization.
 
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Optional
 import logging
 
-router = APIRouter(prefix="/personalization", tags=["Personalization"])
+router = APIRouter(prefix="/api/v1/personalization", tags=["Personalization"])
 logger = logging.getLogger(__name__)
 
 from ..shared.financial_assessment import (
@@ -30,7 +30,7 @@ class FinancialAssessmentRequest(BaseModel):
     profile_id: str = Field(..., description="User profile ID")
     debts: List[DebtInput] = Field(..., description="List of user's debts")
     user_context: UserContext = Field(..., description="User context for personalization")
-    financial_metrics: FinancialMetrics = Field(..., description="Financial metrics for comprehensive assessment")
+    financial_metrics: Optional[FinancialMetrics] = Field(None, description="Financial metrics for comprehensive assessment")
 
 
 # ============================================================================
@@ -41,6 +41,8 @@ class FinancialAssessmentRequest(BaseModel):
 async def get_financial_assessment(request: FinancialAssessmentRequest):
     """
     Generate comprehensive financial health assessment.
+    
+    Note: This endpoint logs the incoming request for debugging purposes.
     
     This endpoint provides a complete debt composition risk analysis including:
     - Deterministic risk score (0-100)
@@ -118,6 +120,12 @@ async def get_financial_assessment(request: FinancialAssessmentRequest):
     ```
     """
     try:
+        # Log incoming request for debugging
+        logger.info(f"Received financial assessment request for profile: {request.profile_id}")
+        logger.info(f"Debts count: {len(request.debts)}")
+        logger.info(f"User context: {request.user_context}")
+        logger.info(f"Financial metrics: {request.financial_metrics}")
+        
         # Validate that debts list is not empty
         if not request.debts:
             raise HTTPException(
