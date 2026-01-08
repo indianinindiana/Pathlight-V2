@@ -339,7 +339,7 @@ const Onboarding = () => {
       {/* Header */}
       <header className="w-full bg-white/80 backdrop-blur-sm border-b border-gray-100">
         <div className="container mx-auto px-4 md:px-6">
-          <div className="flex items-center py-5 md:py-6">
+          <div className="flex items-center py-5 md:py-6 cursor-pointer" onClick={() => navigate('/')}>
             <img src="/pathlight-logo.png" alt="PathLight" className="w-8 h-8 md:w-10 md:h-10 mr-2.5" />
             <h1 className="text-[20px] md:text-[24px] font-bold text-[#002B45] tracking-tight" style={{ letterSpacing: '-0.5%' }}>
               PathLight
