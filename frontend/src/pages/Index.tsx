@@ -164,11 +164,20 @@ const Index = () => {
 
   const handleStartOver = () => {
     if (confirm('Are you sure you want to start over? This will clear all your data.')) {
+      // Clear all session data
       clearSession();
       sessionStorage.removeItem('onboarding_answers');
       sessionStorage.removeItem('onboarding_step');
       sessionStorage.removeItem('onboarding_timestamp');
+      
+      // Reset conversational flow
+      resetFlow();
+      
+      // Reset UI state
       setUiState('idle');
+      
+      // Reload the page to ensure clean state
+      window.location.reload();
     }
   };
 
