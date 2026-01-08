@@ -25,18 +25,25 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 # Configure CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
+allowed_origins_str = os.environ.get("ALLOWED_ORIGINS", "")
+allowed_origins = [origin.strip() for origin in allowed_origins_str.split(',') if origin.strip()]
+
+# Fallback to default origins if the environment variable is not set
+if not allowed_origins:
+    allowed_origins = [
         "http://localhost:5173",
         "http://localhost:5137",
         "http://localhost:3000",
         "http://localhost:32100",
         "https://pathlight-v2-frontend.onrender.com"
-    ],  # Frontend URLs
+    ]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all methods (GET, POST, PUT, DELETE, PATCH, OPTIONS, etc.)
-    allow_headers=["*"],  # Allow all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Include routers
